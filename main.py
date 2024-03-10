@@ -1,5 +1,6 @@
 import asyncio
 import os
+import io
 import random
 import config
 import traceback
@@ -25,7 +26,7 @@ async def on_ready():
   print(f'We have logged in as {client.user}')
   await client.tree.sync()
   print("synced slash command tree")
-  check_reset(client.get_guild(config.guild).member_count*500,client.user.id)
+  check_reset(client.get_guild(config.guild).member_count*200,client.user.id)
   client.loop.create_task(status())
      
 @client.command()
@@ -35,19 +36,20 @@ async def ping(ctx):
 
 
 @client.event
-async def on_command_error(ctx, error: commands.CommandError):
+async def on_command_error(ctx: commands.Context, error: commands.CommandError):
   if isinstance(error, commands.CommandOnCooldown):
     CooldownEmbed = discord.Embed(description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again in {error.retry_after:.2f} seconds.***')
     await ctx.send(CooldownEmbed,ephemeral=True)
-  elif isinstance(error,commands.CheckFailure):
-    pass
-  elif isinstance(error,commands.CommandNotFound):
-    pass
+  elif isinstance(error,commands.errors.MissingRequiredArgument):
+    await ctx.reply(f'<:progresschart:1178590023759695952> {error}')
+  elif isinstance(error, (commands.CheckFailure, commands.CommandNotFound)):
+      pass
   else:
     traceback.print_exception(error)
     exception = traceback.format_exception(error)
-    ErrorEmbed = discord.Embed(description=f'***<:err:1203262608929722480> There was an Internal Error. Please try again later.***\n\n```fix\n{"".join(exception)}\n```')
-    await ctx.send(embed=ErrorEmbed)
+    file = discord.File(filename="error.log", fp=io.BytesIO(''.join(exception).encode()))
+    ErrorEmbed = discord.Embed(description=f'***<:err:1203262608929722480> There was an Internal Error. Please try again later.***')
+    await ctx.send(embed=ErrorEmbed,file=file)
 
 @client.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -57,8 +59,9 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
   else:
     traceback.print_exception(error)
     exception = traceback.format_exception(error)
-    ErrorEmbed = discord.Embed(description=f'***<:err:1203262608929722480> There was an Internal Error. Please try again later.***\n\n```fix\n{"".join(exception)}\n```')
-    await interaction.response.send_message(embed=ErrorEmbed)
+    file = discord.File(filename="error.log", fp=io.BytesIO(exception.encode()))
+    ErrorEmbed = discord.Embed(description=f'***<:err:1203262608929722480> There was an Internal Error. Please try again later.***')
+    await interaction.response.send_message(embed=ErrorEmbed,file=file)
 
 cogsList = []
 for file in os.listdir('cogs'):

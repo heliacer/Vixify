@@ -206,7 +206,9 @@ class Economy(commands.Cog):
   @app_commands.describe(max="Maximum members to display")
   async def leaderboard(self,interaction:discord.Interaction,max: int = 15):
     items = board("coins",max)
-    embed= discord.Embed(title="<:coins:1172819933093179443> Coins Leaderboard",description='\n'.join(f"**<@{row[0]}> `` {row[1]} Coins ``**" for row in items))
+    bank = items[0][1]
+    del items[0]
+    embed= discord.Embed(title="<:coins:1172819933093179443> Coins Leaderboard",description=f'**Bank** `` {bank} Coins ``\n\n' + '\n'.join(f"**<@{row[0]}> `` {row[1]} Coins ``**" for row in items))
     await interaction.response.send_message(embed=embed)
 
   @app_commands.command(name="inventory",description="View owned items & features")

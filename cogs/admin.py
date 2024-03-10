@@ -28,8 +28,11 @@ class Admin(commands.Cog):
   @commands.command()
   @isme()
   async def get(self, ctx, table, value=None, member: discord.Member = None):
+    user_id = None
+    if member:
+       user_id = member.id
     try:
-      result = get(table, value, member.id)
+      result = get(table, value, user_id)
       message = f"```fix\n{result}```"
     except Exception as e:
       message = f'```fix\n{e}```'

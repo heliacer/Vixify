@@ -50,14 +50,13 @@ class Fun(commands.Cog):
     await interaction.response.send_message(embed=embed,view=GameMenu(key,host.id,bet))
 
   @app_commands.command(name = "chatrevive",description = "Pings a role to revive the chat!")
-  @app_commands.describe(message="Something interesting to talk about")
   @app_commands.checks.cooldown(1, 1600, key=lambda i: (i.guild_id))
-  async def chatrevive(self, interaction: discord.Interaction,message: str):
+  async def chatrevive(self, interaction: discord.Interaction):
     role = interaction.guild.get_role(1178726280959635616)
     if role:
       if role in interaction.user.roles:
         await interaction.response.send_message("Pinging the kittens...",ephemeral=True,delete_after=3)
-        await interaction.channel.send(f"**<@&1139862719726624768>{interaction.user.mention}\n{message}**")
+        await interaction.channel.send(f"**{interaction.user.mention} Pinged <@&1139862719726624768>! :smile:**")
       else:
         await interaction.response.send_message("You didn't buy this feature yet.\nSave up <:coins:1172819933093179443> ` 400 Coins ` and get it in the <#1142779979931856896>!",ephemeral=True)
     else:

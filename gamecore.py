@@ -4,7 +4,8 @@ import discord
 import functools
 from dbmanager import get
 
-from games.chessgame import start_chess, ChessGameUI
+from games.chessgame import start_chess
+
 
 games = {'chess': (2,2)}
 
@@ -60,14 +61,14 @@ class LobbyPanel(discord.ui.View):
     self.players = players
     self.key = key
     if self.key:
-      button_gk = discord.ui.Button(label='Get Key',custom_id='LobbyPanel.GetKey',row=0)
-      button_pub = discord.ui.Button(label='Set Public',custom_id='LobbyPanel.SetPublic',row=0)
+      button_gk = discord.ui.Button(label='Get Key',row=0)
+      button_pub = discord.ui.Button(label='Set Public',row=0)
       button_gk.callback = self.get_key
       button_pub.callback = functools.partial(self.toggle_mode, key=self.key)
       self.add_item(button_gk)
       self.add_item(button_pub)
     else:
-      button_priv = discord.ui.Button(label='Set Private',custom_id='LobbyPanel.SetPrivate',row=0)
+      button_priv = discord.ui.Button(label='Set Private',row=0)
       button_priv.callback = functools.partial(self.toggle_mode, key=None)
       self.add_item(button_priv)
   
@@ -87,30 +88,36 @@ class LobbyPanel(discord.ui.View):
     else:
       await interaction.response.send_message('Only the Host can toggle between public & private mode.',ephemeral=True)
 
-  @discord.ui.button(label='Start Game',custom_id='LobbyPanel.Start',row=0)
+  @discord.ui.button(label='Start Game',row=0)
   async def start_game(self,interaction: discord.Interaction,button: discord.ui.Button):
     if self.players[0][0] == interaction.user.id:
-      await self.interaction.delete_original_response()
-      if self.game == 'chess':
-        board = start_chess()
+      if games[self.game][0] <= len(self.players):
+        await self.interaction.delete_original_response()
         await interaction.response.defer()
-        await interaction.channel.send(f'<@{self.players[0][0]}> turn!\n```\n{board}\n```',view=ChessGameUI(board,self.players,self.players[0][0]))
+        if self.game == 'chess':
+          await start_chess(interaction,self.players)
+      else:
+        await interaction.response.send_message("There aren't enough players.",ephemeral=True)
     else:
       await interaction.response.send_message('Only the Host can start the game.',ephemeral=True)
 
-  @discord.ui.button(label='Join',custom_id='LobbyPanel.Join',row=1)
+
+  @discord.ui.button(label='Join',row=1,style=discord.ButtonStyle.blurple)
   async def join_game(self,interaction: discord.Interaction, button: discord.ui.Button):
     if interaction.user.id not in [player[0] for player in self.players]:
-      if self.key:
-        await interaction.response.send_modal(SubmitKey(self.interaction,self.game,self.players,self.key,interaction.user.id))
+      if games[self.game][1] == len(self.players):
+        await interaction.response.send_message("The max players limit has been reached. You can't join this game now.",ephemeral=True)
       else:
-        self.players.append((interaction.user.id,0))
-        await interaction.response.defer()
-        await LobbyPage(self.interaction,self.game,self.players,self.key)
+        if self.key:
+          await interaction.response.send_modal(SubmitKey(self.interaction,self.game,self.players,self.key,interaction.user.id))
+        else:
+          self.players.append((interaction.user.id,0))
+          await interaction.response.defer()
+          await LobbyPage(self.interaction,self.game,self.players,self.key)
     else:
       await interaction.response.send_message('You already joined this game.',ephemeral=True)
   
-  @discord.ui.button(label='leave',custom_id='LobbyPanel.Leave',row=1)
+  @discord.ui.button(label='leave',row=1,style=discord.ButtonStyle.blurple)
   async def leave_game(self,interaction: discord.Interaction, button: discord.ui.Button):
     if interaction.user.id == self.players[0][0]:
       await interaction.response.defer()
@@ -121,7 +128,7 @@ class LobbyPanel(discord.ui.View):
     else:
       await interaction.response.send_message("You haven't joined the game yet, mafaka.",ephemeral=True)
 
-  @discord.ui.button(label='Place Bet',custom_id='LobbyPanel.PlaceBet',row=1)
+  @discord.ui.button(label='Place Bet',row=1,style=discord.ButtonStyle.blurple)
   async def place_bet(self, interaction: discord.Interaction, button: discord.ui.Button):
     if interaction.user.id not in [player[0] for player in self.players]:
       await interaction.response.send_message("You haven't joined this game yet.",ephemeral=True)
@@ -146,7 +153,7 @@ class GameMenu(discord.ui.View):
     self.host_bet = host_bet
 
     options = [discord.SelectOption(label=name) for name, game in games.items()]
-    gameselection = discord.ui.Select(custom_id="GameMenu.GameSelect",placeholder="Select a game",max_values=1,min_values=1,options=options)
+    gameselection = discord.ui.Select(placeholder="Select a game",max_values=1,min_values=1,options=options)
 
     gameselection.callback = self.gameselect
     self.add_item(gameselection)

@@ -78,7 +78,7 @@ class Economy(commands.Cog):
   @commands.hybrid_command(name = "steal",description = "steality steality")
   @commands.cooldown(1, 180, commands.BucketType.user)
   @app_commands.describe(member = "Member to steal from")
-  async def steal(self, ctx, member : discord.Member):
+  async def steal(self, ctx: commands.Context, member : discord.Member):
     user = ctx.author
     if user == member:
       await ctx.send("You cannot steal from yourself.",ephemeral=True,delete_after = 10)

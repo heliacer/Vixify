@@ -67,7 +67,7 @@ class AppealButton(discord.ui.View):
     await self.channel.send(embed=update_embed,view=ConfirmDeclineButtons(self.original_message))
     button.disabled = True
     await interaction.response.edit_message(view=self)
-    await interaction.channel.send('<:confirm:1175396326272409670> Appeal sent. Please wait until it has been revieved.',ephemeral=True)
+    await interaction.channel.send('<:confirm:1175396326272409670> Appeal sent. Please wait until it has been revieved.')
 
 def is_author(message: discord.Message, member: discord.Member):
     return message.author == member
@@ -120,7 +120,7 @@ class Events(commands.Cog):
             has_penalty[message.author.id] = False
             duration = datetime.timedelta(hours=1)
             await message.author.timeout(duration)
-            exchange(self.bot.user.id,message.author.id,get('economy','coins',message.author)//2)
+            exchange(self.bot.user.id,message.author.id,get('economy','coins',message.author.id)//2)
             await broadcast(message=message,title='Heavy message spam punishment',content=f"**Now you've done it, {message.author.mention}. Half your coins. Gone.**\n\nThis happened due to you breaking an important rule twice. Do not spam messages in order to get coins. You have been timed out for an hour.\n*Your XP and your Level remain the same. Create a <#1141476223546032278> for further questions.*")
           else:
             has_penalty[message.author.id] = True
@@ -130,7 +130,7 @@ class Events(commands.Cog):
             await broadcast(message=message,title='Heavy message spam warning',content=f"**You exceeded the heat limit, {message.author.mention} ! **\nYou have been timed out for 30 Minutes.\nDon't spam messages in order to get coins.\n*Doing this again could lead to a big coin loss. If you feel like this was an error, click appeal*",view=AppealButton(channel=self.bot.get_channel(config.mod_update_channel),original_message=message))
           print(f"Penalties for {message.author.name}: ",has_penalty[message.author.id])
           return
-        elif time and time < 0.7: # Non-harmful fast message spam
+        elif time and time < 0.5: # Non-harmful fast message spam
           await message.delete()
           warnings.setdefault(message.author.id, 0)
           warnings[message.author.id] += 1

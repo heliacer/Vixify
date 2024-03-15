@@ -1,14 +1,14 @@
 import chess
-import chess.svg
 import discord
 from PIL import Image
+from dbmanager import exchange
 from typing import Union
+import asyncio
 import io
+import config
 from discord import ui
-from discord.utils import MISSING
 
 async def start_chess(interaction: discord.Interaction,players:list):
-  print(players)
   board = chess.Board()
   embed = discord.Embed()
   file = get_binary_board(board=board)
@@ -16,7 +16,7 @@ async def start_chess(interaction: discord.Interaction,players:list):
   embed.set_author(name='Chess Gambling Session',icon_url='https://cdn-icons-png.flaticon.com/128/4960/4960287.png')
   pot = sum(item[1] for item in players)
   embed.set_footer(text=f'Total Pot: {pot}')
-  await interaction.channel.send(content=f":white_circle: <@{players[0][0]}>'s turn!",embed=embed,view=ChessGameUI(board=board,players=players,current_player=players[0],color='white'),file=file)
+  await interaction.channel.send(content=f"`◻️ White `<@{players[0][0]}>'s turn!",embed=embed,view=ChessGameUI(board=board,players=players,current_player=players[0],color='white'),file=file)
 
 def move_piece(move:str,board: chess.Board):
   try:
@@ -24,10 +24,45 @@ def move_piece(move:str,board: chess.Board):
     if move in board.legal_moves:
       board.push(move)
       return board
+    elif move in board.pseudo_legal_moves:
+      raise chess.IllegalMoveError('pseudo')
     else:
       raise chess.IllegalMoveError
   except chess.InvalidMoveError as error:
     raise chess.InvalidMoveError(error)
+
+def get_piece_name(board: chess.Board,uci_name):
+  try:
+    return chess.piece_name(board.piece_at(chess.SQUARE_NAMES.index(uci_name)).piece_type)
+  except Exception:
+    return None
+
+class CheckoutGUI(ui.View):
+  def __init__(self,players: list,winner,seconds):
+    super().__init__(timeout=None)
+    self.players = players
+    self.winner = winner
+    payout_button = ui.Button(label=f'Proceed to payout ({seconds})',style=discord.ButtonStyle.blurple,emoji='<:checkout:1175007951669436446>')
+    payout_button.callback = self.payout
+    self.add_item(payout_button)
+
+  async def payout(self,interaction: discord.Interaction = None,message: discord.Message = None):
+    quote = "\n\n>>> 99% of gamblers quit before they win big.\nDon't be a bitch.\nJust take another loan and win all your money back, that's how i do it. Remember: *«There are no losers, just quitters»*"
+    if self.winner:
+      pot = sum(item[1] for item in self.players)
+      exchange(self.winner[0],config.bot_id,pot)
+      embed = discord.Embed(description=f"<@{self.winner[0]}> got paid <:coins:1172819933093179443>` {pot} Coins `{quote}")
+    else:
+      embed = discord.Embed(description=f'**Both gamblers recieve their money back due to a draw.**{quote}')
+    embed.set_author(name='Gambling Checkout',icon_url='https://cdn-icons-png.flaticon.com/128/8580/8580823.png')
+    if interaction:
+      await interaction.message.delete()
+      await interaction.channel.send(embed=embed)
+    if message:
+      await message.delete()
+      await message.channel.send(embed=embed)
+
+
 
 class SubmitUCIMove(ui.Modal,title='Chess Move'):
   def __init__(self,board,players: list,current_player,color):
@@ -42,37 +77,45 @@ class SubmitUCIMove(ui.Modal,title='Chess Move'):
   move = ui.TextInput(label='Your UCI Move. e.g e2e4.',style=discord.TextStyle.short)
 
   async def on_submit(self, interaction: discord.Interaction):
-    print(interaction.data)
     move = interaction.data['components'][0]['components'][0]['value']
+    moved_piece = get_piece_name(self.board,move[:2])
     try:
-      board = move_piece(move,self.board)
-      embed = discord.Embed(description=f'{interaction.user.mention} Moved ` {move[:2]} ` to ` {move[2:]} `.')
+      board =  move_piece(move,self.board)
+      embed = discord.Embed(description=f'{interaction.user.mention} moved {moved_piece.capitalize()} from ` {move[:2]} ` to ` {move[2:]} `')
       next_player = self.players[(self.players.index(self.current_player) + 1) % len(self.players)]
       file = get_binary_board(board=board)
-      embed.set_image(url="attachment://board.png")
       embed.set_author(name='Chess Gambling Session',icon_url='https://cdn-icons-png.flaticon.com/128/4960/4960287.png')
       pot = sum(item[1] for item in self.players)
       embed.set_footer(text=f'Total Pot: {pot}')
       await interaction.response.defer()
       await interaction.delete_original_response()
-      if board.is_checkmate():
-        embed.description += '\n**The current state is Checkmate!**'
-      if board.is_stalemate():
-        embed.description += '\n**The Game ended in Stalemate. Both keep their bets.**'
-        await interaction.response.send_message(embed=embed,file=file)
-        return
-      if board.is_variant_end():
-        embed.description += f'\n**The Game ended in {board.outcome()}**'
-        debug_msg = [self.current_player,self.players]
-        await interaction.response.send_message(content=debug_msg,embed=embed,file=file)
-        # Add checkout
-        print(board.outcome())
-        return
-      await interaction.channel.send(content=f":{self.color}_circle: <@{next_player[0]}>'s turn!",embed=embed,view=ChessGameUI(board,self.players,next_player,self.color),file=file)
+      if board.is_check() and not board.is_checkmate():
+        embed.description += '\n***Check!***'
+      outcome = board.outcome()
+      if outcome:
+          embed.set_thumbnail(url="attachment://board.png")
+          embed.description += f'\n***{outcome.termination.name.lower().capitalize()}!***\n**Total moves:** ` {len(board.move_stack)} `'
+          print(outcome.termination.value)
+          winner = next_player if outcome.termination.value == 2 else None
+          win_message = await interaction.channel.send(content=f'🏆 {interaction.user.mention} The Session has ended!\n**Winner:** ` {"◻️ White" if self.color == "black" else "◼️ Black"} ` <@{next_player[0]}>',embed=embed,view=CheckoutGUI(self.players,winner,10),file=file)
+          for i in range(10):
+            await asyncio.sleep(1)
+            try:
+              await win_message.edit(view=CheckoutGUI(self.players,winner,9-i))
+            except discord.NotFound:
+              break
+          delayed = CheckoutGUI(self.players, next_player,0)
+          await delayed.payout(message=win_message)
+          return
+      embed.set_image(url="attachment://board.png")
+      await interaction.channel.send(content=f"`{'◼️' if self.color == 'black' else '◻️' + self.color.capitalize()} `<@{next_player[0]}>'s turn!",embed=embed,view=ChessGameUI(board,self.players,next_player,self.color),file=file)
     except chess.InvalidMoveError:
-      await interaction.response.send_message(f'{move} is not a valid move. Try again.',ephemeral=True)
-    except chess.IllegalMoveError:
-      await interaction.response.send_message(f'{move} is not a Illegal move. Try again.',ephemeral=True)
+      await interaction.response.send_message(f'` {move} ` is not a valid move. Try again.',ephemeral=True)
+    except chess.IllegalMoveError as error:
+      if error == 'pseudo':
+        await interaction.response.send_message(f'` {move[:2]} ` to ` {move[2:]} ` is a Pseudo legal move. Your King is in check.',ephemeral=True)
+      else:
+        await interaction.response.send_message(f'` {move[:2]} ` to ` {move[2:]} ` is a Illegal move. Try again.',ephemeral=True)
 
 class ChessGameUI(ui.View):
   def __init__(self,board:chess.Board,players,current_player,color):
@@ -94,6 +137,21 @@ class ChessGameUI(ui.View):
     embed = discord.Embed(title='Game GUI Instructions',description="1. **Move Your Pieces:**\n - Use chessboard coordinates to specify moves. Each square has a unique label, like e2 or g7.\n - To move a piece, type the starting square (e.g., e2) followed by the destination square (e.g., e4). No spaces or special characters needed.\n2. **Example Moves:**\n - Move a pawn from e2 to e4: `e2e4`\n - Move a knight from g1 to f3: `g1f3`\n3. **Finding Coordinates:**\n - Look at the edges of the board for letter and number labels.\n - The letters (a-h) represent columns, and the numbers (1-8) represent rows.\n\nEnjoy playing chess!")
     await interaction.response.send_message(embed=embed,ephemeral=True)
 
+  @ui.button(label='Give Up',emoji='<:sandclock:1203261564291911680>')
+  async def giveup(self,interaction: discord.Interaction,button):
+    next_player = self.players[(self.players.index(self.current_player) + 1) % len(self.players)]
+    embed = discord.Embed(description=f'**{interaction.user.mention} gave up. what a shame.**\n**Total moves:** ` {len(self.board.move_stack)} `\n<@{next_player[0]}> wins all the coins.')
+    await interaction.response.defer()
+    await interaction.delete_original_response()
+    win_message = await interaction.channel.send(embed=embed,view=CheckoutGUI(self.players,next_player,10))
+    for i in range(10):
+      await asyncio.sleep(1)
+      try:
+        await win_message.edit(view=CheckoutGUI(self.players,next_player,9-i))
+      except discord.NotFound:
+        break
+    delayed = CheckoutGUI(self.players, next_player,0)
+    await delayed.payout(message=win_message)
 @staticmethod
 def get_binary_board(board) -> discord.File:
     size = (500, 500)

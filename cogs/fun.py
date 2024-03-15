@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 from gamecore import GameMenu
 import asyncio
+from dbmanager import get
 import random
 
 #Change coemes role and chatrevive role to database items 
@@ -37,8 +38,19 @@ class Fun(commands.Cog):
   @app_commands.describe(mode='Choose whether you want a Public or Private session. Public by default.')
   @app_commands.describe(bet='The amount you choose to bet. You can change this later.')
   async def gamble(self, interaction: discord.Interaction, mode: app_commands.Choice[str] = None,bet: int = None):
+    host_balance = get('economy','coins',interaction.user.id)
+    if host_balance < 50:
+      await interaction.response.send_message("You're too poor to take a step into the gambling luxury. Save up at least <:coins:1172819933093179443>` 50 Coins ` to get started.",ephemeral=True)
+      return
     if not bet:
       bet = 0
+    else:
+      if host_balance < bet:
+        await interaction.response.send_message("You have insufficient funds mafaka. :angry:",ephemeral=True)
+        return
+      if bet not in range(50,1500):
+        await interaction.response.send_message('Your Bet must be at least <:coins:1172819933093179443> ` 50 - 1500 Coins `',ephemeral=True)
+        return
     host = interaction.user
     msg = '<:worldwide:1203760886842527855> ` Public `'
     key = None

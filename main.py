@@ -48,7 +48,8 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError):
     traceback.print_exception(error)
     exception = traceback.format_exception(error)
     file = discord.File(filename="error.log", fp=io.BytesIO(''.join(exception).encode()))
-    ErrorEmbed = discord.Embed(description=f'***<:err:1203262608929722480> There was an Internal Error. Please try again later.***')
+    ErrorEmbed = discord.Embed(description=f'***<:err:1203262608929722480> There was an unhandled Internal Error. Please try again later.***')
+    ErrorEmbed.set_footer(text=error)
     await ctx.send(embed=ErrorEmbed,file=file)
 
 @client.tree.error
@@ -60,8 +61,10 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     traceback.print_exception(error)
     exception = traceback.format_exception(error)
     file = discord.File(filename="error.log", fp=io.BytesIO(exception.encode()))
-    ErrorEmbed = discord.Embed(description=f'***<:err:1203262608929722480> There was an Internal Error. Please try again later.***')
+    ErrorEmbed = discord.Embed(description=f'***<:err:1203262608929722480> There was an unhandled Internal Error. Please try again later.***')
+    ErrorEmbed.set_footer(text=error)
     await interaction.response.send_message(embed=ErrorEmbed,file=file)
+
 
 cogsList = []
 for file in os.listdir('cogs'):

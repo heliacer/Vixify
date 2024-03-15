@@ -2,8 +2,8 @@ import random
 from typing import Optional
 import discord
 import functools
-from dbmanager import get
-
+from dbmanager import exchange, get
+import config
 from games.chessgame import start_chess
 
 
@@ -53,6 +53,12 @@ class PlaceBet(discord.ui.Modal, title='Place bet'):
     else:
       await interaction.response.send_message('Your Bet must be a valid number.',ephemeral=True)
 
+def has_all_bets(list):
+    for item in list:
+        if item[1] == 0:
+            return False
+    return True
+
 class LobbyPanel(discord.ui.View):
   def __init__(self,interaction: discord.Interaction,game,players: list,key):
     super().__init__(timeout=None)
@@ -92,10 +98,15 @@ class LobbyPanel(discord.ui.View):
   async def start_game(self,interaction: discord.Interaction,button: discord.ui.Button):
     if self.players[0][0] == interaction.user.id:
       if games[self.game][0] <= len(self.players):
-        await self.interaction.delete_original_response()
-        await interaction.response.defer()
-        if self.game == 'chess':
-          await start_chess(interaction,self.players)
+        if has_all_bets(self.players):
+          await self.interaction.delete_original_response()
+          await interaction.response.defer()
+          for id,value in self.players:
+            exchange(config.bot_id,id,value)
+          if self.game == 'chess':
+            await start_chess(interaction,self.players)
+        else:
+          await interaction.response.send_message('There are bets left to set.',ephemeral=True)
       else:
         await interaction.response.send_message("There aren't enough players.",ephemeral=True)
     else:
@@ -104,18 +115,22 @@ class LobbyPanel(discord.ui.View):
 
   @discord.ui.button(label='Join',row=1,style=discord.ButtonStyle.blurple)
   async def join_game(self,interaction: discord.Interaction, button: discord.ui.Button):
-    if interaction.user.id not in [player[0] for player in self.players]:
-      if games[self.game][1] == len(self.players):
-        await interaction.response.send_message("The max players limit has been reached. You can't join this game now.",ephemeral=True)
-      else:
-        if self.key:
-          await interaction.response.send_modal(SubmitKey(self.interaction,self.game,self.players,self.key,interaction.user.id))
-        else:
-          self.players.append((interaction.user.id,0))
-          await interaction.response.defer()
-          await LobbyPage(self.interaction,self.game,self.players,self.key)
+    user_balance = get('economy','coins',interaction.user.id)
+    if user_balance < 50:
+      await interaction.response.send_message("You're too poor to take a step into the gambling luxury. Save up at least <:coins:1172819933093179443>` 50 Coins ` to get started.",ephemeral=True)
     else:
-      await interaction.response.send_message('You already joined this game.',ephemeral=True)
+      if interaction.user.id not in [player[0] for player in self.players]:
+        if games[self.game][1] == len(self.players):
+          await interaction.response.send_message("The max players limit has been reached. You can't join this game now.",ephemeral=True)
+        else:
+          if self.key:
+            await interaction.response.send_modal(SubmitKey(self.interaction,self.game,self.players,self.key,interaction.user.id))
+          else:
+            self.players.append((interaction.user.id,0))
+            await interaction.response.defer()
+            await LobbyPage(self.interaction,self.game,self.players,self.key)
+      else:
+        await interaction.response.send_message('You already joined this game.',ephemeral=True)
   
   @discord.ui.button(label='leave',row=1,style=discord.ButtonStyle.blurple)
   async def leave_game(self,interaction: discord.Interaction, button: discord.ui.Button):
@@ -136,13 +151,21 @@ class LobbyPanel(discord.ui.View):
       await interaction.response.send_modal(PlaceBet(self.interaction,self.game,self.players,self.key))
 
 async def LobbyPage(interaction: discord.Interaction,game: str,players:list,key:int):
-  playerslist  = "\n".join(f'<@{player[0]}> <:coins:1172819933093179443> ` {player[1]} Coins ` :crown:' if player[0] == players[0][0] else f'<@{player[0]}> <:coins:1172819933093179443> ` {player[1]} Coins `' for player in players)
+  playerslist = "\n".join(
+      f'<@{player[0]}> <:coins:1172819933093179443> ` {"Not set" if player[1] == 0 else str(player[1]) + " Coins"} ` :crown:' 
+      if player[0] == players[0][0] 
+      else f'<@{player[0]}> <:coins:1172819933093179443> ` {"Not set" if player[1] == 0 else str(player[1]) + " Coins"} `'
+      for player in players
+  )
   playermin = games[game][0]
   playermax = games[game][1]
   mode = '<:worldwide:1203760886842527855> ` Public `'
   if key:
     mode = '<:padlock:1178730730998734980> ` Private `'
-  PageEmbed = discord.Embed(title=game.capitalize(), description=f'` {str(playermin) + "-" + str(playermax) if playermax != playermin else "Min " + str(playermin)} Players ` {mode}\n\n**Players Joined**\n{playerslist}\n\nTotal Bet: <:coins:1172819933093179443> ` {sum([player[1] for player in players])} Coins `')
+  PageEmbed = discord.Embed(title=game.capitalize(), description=f'` {str(playermin) + "-" + str(playermax) if playermax != playermin else "Min " + str(playermin)} Players ` {mode}\n\n**Players Joined**\n{playerslist}\n\nPot: <:coins:1172819933093179443> ` {sum([player[1] for player in players])} Coins `')
+  if not has_all_bets(players):
+    PageEmbed.description += '\n**There are bets left to set.**'
+  PageEmbed.set_footer(text='The bets will be placed in the bank until paid out.')
   await interaction.edit_original_response(embed=PageEmbed,view=LobbyPanel(interaction,game,players,key))
   
 class GameMenu(discord.ui.View):

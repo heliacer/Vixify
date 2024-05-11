@@ -15,7 +15,7 @@ class Admin(commands.Cog):
   @commands.command()
   @isme()
   async def status(self, ctx, status):
-    await self.bot.change_presence(activity = discord.Activity(type = discord.ActivityType.custom,name = " ",state = status))
+    await self.bot.change_presence(activity = discord.Activity(type = discord.ActivityType.custom,name = " ",state = status.replace("_"," ")))
     await ctx.send(f"**<:confirm:1175396326272409670> Task executed.**", delete_after=10)
 
   @commands.command()

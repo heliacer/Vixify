@@ -68,15 +68,5 @@ class Admin(commands.Cog):
       message = f'**<:remove:1175005705422512218> Task failed.**\n```fix\n{e}```'
     await ctx.send(message,delete_after = 20)
 
-  @commands.command()
-  @isme()
-  async def loadbackup(self, ctx, data):
-    try:
-      db.load(dict(data))
-      message = f"**<:confirm:1175396326272409670> Task executed.**"
-    except Exception as e:
-      message = f'**<:remove:1175005705422512218> Task failed.**\n```fix\n{e}```'
-    await ctx.send(message, delete_after=10)  
-      
 async def setup(bot):
     await bot.add_cog(Admin(bot))

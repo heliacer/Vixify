@@ -16,7 +16,7 @@ Add your Discord bot token to the file in the following format:
 TOKEN=your_bot_token_here
 ```
 
-Create a config.py file in the root directory.
+Create a ``config.py`` file in the root directory.
 Add the following config and adjust them to your needs:
 ```py
 ADMIN = [955187087911555152,1020995268159754321]

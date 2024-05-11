@@ -4,10 +4,11 @@ import io
 import random
 import config
 import traceback
-from dbmanager import check_reset
+import db
 import discord
 from discord import app_commands
 from discord.ext import commands
+from dotenv import load_dotenv
 
 intents = discord.Intents.all()  # Enable all intents
 client = commands.Bot(
@@ -15,25 +16,20 @@ client = commands.Bot(
   intents=intents,
 )
 
-statuses = ["Starting a inflation...","Gathering Coems...","Stealing some coins...","Breaking in a bank...","Going on a rampage..."]
-async def status():
-    while True:
-        await client.change_presence(activity = discord.Activity(type = discord.ActivityType.custom,name = " ",state = random.choice(statuses)))
-        await asyncio.sleep(10)
 
 @client.event
 async def on_ready():
   print(f'We have logged in as {client.user}')
   await client.tree.sync()
   print("synced slash command tree")
-  check_reset(client.get_guild(config.guild).member_count*200,client.user.id)
-  client.loop.create_task(status())
+  db.refresh(client.get_guild(config.guild).member_count*200,client.user.id)
+  await client.change_presence(activity = discord.Activity(type = discord.ActivityType.custom,name = " ",state = 'Keep your eyes on the prize!'))
+
      
 @client.command()
 async def ping(ctx):
   msg = await ctx.send('Pong!')
   await msg.edit(content='Pong! ``{0}ms``'.format(round(client.latency, 1))) 
-
 
 @client.event
 async def on_command_error(ctx: commands.Context, error: commands.CommandError):
@@ -81,4 +77,6 @@ try:
   asyncio.run(load())
 except:
   traceback.print_exc()
-client.run(config.bot_token)
+
+load_dotenv()
+client.run(os.getenv('TOKEN'))

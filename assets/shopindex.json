@@ -48,14 +48,14 @@
       "name": "Use /coems",
       "description": "Aye pasta la bay be bean",
       "price": 380,
-      "id": 1178726195467145256,
+      "id": 1001,
       "stackable" : false
     },
     "use_chatrevive": {
       "name": "Use /chatrevive",
       "description": "Wake up dead chat",
       "price": 400,
-      "id": 1178726280959635616,
+      "id": 1002,
       "stackable" : false
     }
   },
@@ -64,8 +64,8 @@
       "name": "Padlock",
       "description": "Stealer go away grr",
       "price": 200,
-      "id": 1001,
-      "stackable" : true
+      "id": 2001,
+      "stackable" : false
     }
   }
 }

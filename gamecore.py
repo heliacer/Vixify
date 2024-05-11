@@ -2,12 +2,11 @@ import random
 from typing import Optional
 import discord
 import functools
-from dbmanager import exchange, get
-import config
-from games.chessgame import start_chess
+import db
+from games import chessgame,pokergame
 
 
-games = {'chess': (2,2)}
+games = {'chess': (2,2),'poker' :(2,10)}
 
 class SubmitKey(discord.ui.Modal, title = 'Join private gambling session'):
   key = discord.ui.TextInput(label='Key',style=discord.TextStyle.short)
@@ -42,7 +41,7 @@ class PlaceBet(discord.ui.Modal, title='Place bet'):
     if bet.isnumeric():
       amount = int(bet)
       if amount in range(50,1500):
-        user_balance = get('economy','coins',interaction.user.id)
+        user_balance = db.get('economy','coins',interaction.user.id)
         if user_balance >= amount:
           await LobbyPage(self.interaction,self.game,[(x, y) if x != interaction.user.id else (x, amount) for x, y in self.players],self.key)
           await interaction.response.send_message("Your Bet was placed. You can change it by setting your Bet again.",ephemeral=True)
@@ -102,9 +101,11 @@ class LobbyPanel(discord.ui.View):
           await self.interaction.delete_original_response()
           await interaction.response.defer()
           for id,value in self.players:
-            exchange(config.bot_id,id,value)
+            db.exchange(interaction.client.user.id,id,value)
           if self.game == 'chess':
-            await start_chess(interaction,self.players)
+            await chessgame.start(interaction,self.players)
+          if self.game == 'poker':
+            await pokergame.start(interaction,self.players)
         else:
           await interaction.response.send_message('There are bets left to set.',ephemeral=True)
       else:
@@ -115,7 +116,7 @@ class LobbyPanel(discord.ui.View):
 
   @discord.ui.button(label='Join',row=1,style=discord.ButtonStyle.blurple)
   async def join_game(self,interaction: discord.Interaction, button: discord.ui.Button):
-    user_balance = get('economy','coins',interaction.user.id)
+    user_balance = db.get('economy','coins',interaction.user.id)
     if user_balance < 50:
       await interaction.response.send_message("You're too poor to take a step into the gambling luxury. Save up at least <:coins:1172819933093179443>` 50 Coins ` to get started.",ephemeral=True)
     else:

@@ -3,7 +3,8 @@ from discord.ext import commands
 from discord import app_commands
 from gamecore import GameMenu
 import asyncio
-from dbmanager import get
+import db
+import config
 import random
 
 #Change coemes role and chatrevive role to database items 
@@ -16,7 +17,7 @@ class Fun(commands.Cog):
   async def coems(self, interaction: discord.Interaction):
     role = interaction.guild.get_role(1178726195467145256)
     if role not in interaction.user.roles:
-      await interaction.response.send_message("You didn't buy this feature yet.\nSave up <:coins:1172819933093179443> ` 350 Coins ` and get it in the <#1142779979931856896>!",ephemeral=True)
+      await interaction.response.send_message(f"You didn't buy this feature yet.\nSave up <:coins:1172819933093179443> ` 350 Coins ` and get it in the <#{config.SHOP_CHANNEL}>!",ephemeral=True)
       return
     await interaction.response.send_message("Generating coems :money_mouth:",ephemeral=True)
     messages = [
@@ -38,7 +39,7 @@ class Fun(commands.Cog):
   @app_commands.describe(mode='Choose whether you want a Public or Private session. Public by default.')
   @app_commands.describe(bet='The amount you choose to bet. You can change this later.')
   async def gamble(self, interaction: discord.Interaction, mode: app_commands.Choice[str] = None,bet: int = None):
-    host_balance = get('economy','coins',interaction.user.id)
+    host_balance = db.get('economy','coins',interaction.user.id)
     if host_balance < 50:
       await interaction.response.send_message("You're too poor to take a step into the gambling luxury. Save up at least <:coins:1172819933093179443>` 50 Coins ` to get started.",ephemeral=True)
       return
@@ -70,7 +71,7 @@ class Fun(commands.Cog):
         await interaction.response.send_message("Pinging the kittens...",ephemeral=True,delete_after=3)
         await interaction.channel.send(f"**{interaction.user.mention} Pinged <@&1139862719726624768>! :smile:**")
       else:
-        await interaction.response.send_message("You didn't buy this feature yet.\nSave up <:coins:1172819933093179443> ` 400 Coins ` and get it in the <#1142779979931856896>!",ephemeral=True)
+        await interaction.response.send_message(f"You didn't buy this feature yet.\nSave up <:coins:1172819933093179443> ` 400 Coins ` and get it in the <#{config.SHOP_CHANNEL}>!",ephemeral=True)
     else:
       await interaction.response.send_message("Role not found")
 

@@ -1,0 +1,5 @@
+chess==1.10.0
+discord.py==2.3.2
+pillow==10.3.0
+poker==0.30.0
+python-dotenv==1.0.1

@@ -1,5 +1,5 @@
 import discord
-from dbmanager import *
+import db
 import json
 import config
 from discord import ui
@@ -170,27 +170,13 @@ class CheckoutButtons(ui.View):
   async def confirmcheckout(self,interaction: discord.Interaction,button: ui.Button):
     await interaction.response.defer()
     embed= discord.Embed(description=f"**<:partyhorn:1175408062782263397> {self.section.capitalize()} added successfully!**")
-    exchange(config.bot_id,interaction.user.id,self.price)
-    for id in self.selection:
-      role = interaction.guild.get_role(id)
+    db.exchange(interaction.client.user.id,interaction.user.id,self.price)
+    for item_id in self.selection:
+      role = interaction.guild.get_role(item_id)
       if role:
         await interaction.user.add_roles(role)
       else:
-        json_data = get("items","json_data",interaction.user.id)
-        if json_data != 0:
-          json_data = json.loads(json_data)
-          print(f"old data: {json_data}")
-          if json_data.get(str(id)):
-            json_data[str(id)] += 1
-          else:
-            json_data[str(id)] = 1
-        else:
-          print("null data.")
-          json_data = {str(id):1}
-        print("adding item.")
-        print(f"new: {json_data}")
-        set("items","json_data",interaction.user.id,json.dumps(json_data))
-
+        db.items.increase(interaction.user.id,item_id,1)
     await self.parent.edit_original_response(embed=embed,view=None)
 
   @ui.button(label="Go back",custom_id="View.CancelCheckout",emoji="<:undo:1175396297583366155>")
@@ -202,13 +188,13 @@ class SectionSelect(ui.View):
   def __init__(self,parent):
     super().__init__(timeout=None)
     self.parent = parent
-    self.balance = get("economy","coins",parent.user.id)
+    self.balance = db.get("economy","coins",parent.user.id)
 
   options = [discord.SelectOption(label=key.capitalize(),value=key,emoji=value) for key, value in contentlib.items()]
   @ui.select(custom_id="View.SectionSelect",placeholder="Select a option",min_values=1,max_values=1,options=options,row=0)
   async def selection(self,interaction:discord.Interaction,select: ui.Select):
     await interaction.response.defer()
-    bank_balance = get('economy','coins',config.bot_id)
+    bank_balance = db.get('economy','coins',interaction.client.user.id)
     sale_percent = 1
     if bank_balance < interaction.guild.member_count * 100:
       sale_percent = 0.75
@@ -240,7 +226,7 @@ class ShopReady(commands.Cog):
 
   @commands.Cog.listener()
   async def on_ready(self):
-    channel = self.bot.get_channel(config.shop_channel)
+    channel = self.bot.get_channel(config.SHOP_CHANNEL)
     if channel:
       embed = discord.Embed(
         title="<:level:1172820830812643389> Level Shop",

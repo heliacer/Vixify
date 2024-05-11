@@ -1,8 +1,7 @@
 import discord
-from dbmanager import *
+import db
 import random
 import io
-import config
 import json
 from discord import app_commands
 from discord.ext import commands
@@ -37,7 +36,7 @@ class Economy(commands.Cog):
 
   @commands.hybrid_command(name= "bank", description = 'The Vixify Bank gross value')
   async def bank(self,ctx):
-    bank_balance = get("economy","coins",self.bot.user.id)
+    bank_balance = db.get("economy","coins",self.bot.user.id)
     status = ['Healthy','Sufficient funds, stable operations.']
     if bank_balance < ctx.guild.member_count *100:
       status = ['Undercapitalized','Running low on funds, 75% Shop goods sale.']
@@ -56,9 +55,9 @@ class Economy(commands.Cog):
       else:
         await ctx.send(f"{user.mention} is a Bot.\nBots don't have coins. lol.")
       return
-    coins_balance = get("economy","coins",user.id)
-    user_rank = get("economy","rank",user.id)
-    user_xp = get("economy","xp",user.id)
+    coins_balance = db.get("economy","coins",user.id)
+    user_rank = db.get("economy","rank",user.id)
+    user_xp = db.get("economy","xp",user.id)
     if user_xp > 0:
       if user_rank > 0:
         percentage = (int(user_xp) / ((int(user_rank))*120)) * 100
@@ -87,8 +86,8 @@ class Economy(commands.Cog):
       await ctx.send(f"{member.mention} is a bot.\nBots don't have coins. lmao.")
       return
     
-    user_rank = get("economy","rank",user.id)
-    member_rank = get("economy","rank",member.id)
+    user_rank = db.get("economy","rank",user.id)
+    member_rank = db.get("economy","rank",member.id)
     if user_rank < 3:
       embed = discord.Embed(description="You need to reach <:level:1172820830812643389> `` Rank 2 `` to be able to steal.")
       embed.set_author(name='Nuh uh',url='https://discord.com/assets/b2dac9e1b4de07c5ae68.svg')
@@ -100,21 +99,21 @@ class Economy(commands.Cog):
       await ctx.send(embed=embed)
       return
     
-    user_balance = get("economy","coins",user.id)
-    member_balance = get("economy","coins",member.id)
-    json_data = get("items","json_data",member.id)
+    user_balance = db.get("economy","coins",user.id)
+    member_balance = db.get("economy","coins",member.id)
+    json_data = db.get("items","json_data",member.id)
 
     if json_data != 0:
       json_data = json.loads(json_data)
       if json_data['1001']:
         if json_data['1001'] > 0:
           json_data['1001'] -= 1
-          set("items","json_data", member.id,json.dumps(json_data))
+          db.put("items","json_data", member.id,json.dumps(json_data))
           if user_balance < 20:
-            set("economy","coins",user.id,0)
+            db.put("economy","coins",user.id,0)
             embed = discord.Embed(description=f"**<:padlock:1178730730998734980> {member.name} had a padlock. you lost ALL your coins**")
           else:
-            set("economy","coins",user.id,round(user_balance-user_balance*0.5))
+            db.put("economy","coins",user.id,round(user_balance-user_balance*0.5))
             embed2 = discord.Embed(description=f"While you had a padlock, {user.display_name} tried stealing from you and litteraly lost half of his Coins. You monster.",color = 0x2b2d31)
             embed = discord.Embed(description=f"**<:padlock:1178730730998734980> {member.name} had a padlock. dammn bro you lost half of your coins**")
           await ctx.send(embed=embed)
@@ -139,8 +138,8 @@ class Economy(commands.Cog):
       user_new_balance = user_balance + steal_amount
       member_new_balance = member_balance - steal_amount
 
-      set("economy","coins",user.id,user_new_balance)
-      set("economy","coins",member.id,member_new_balance)
+      db.put("economy","coins",user.id,user_new_balance)
+      db.put("economy","coins",member.id,member_new_balance)
 
       embed = discord.Embed(
         description = f"**` {user} ` stole <:coins:1172819933093179443> ` {steal_amount:,} Coins ` from you.\nYou now have <:coins:1172819933093179443> ` {member_new_balance:,} coins ` left**",
@@ -162,7 +161,7 @@ class Economy(commands.Cog):
          pay_amount = user_balance
          failMessage = f"You failed and lost all your Coins to {member.mention}"
          
-      exchange(config.bot_id,user.id,pay_amount)
+      db.exchange(self.bot.user.id,user.id,pay_amount)
 
       embed = discord.Embed(description = f"` {user} ` tried robbing from you\nAnd paid <:coins:1172819933093179443> ` {pay_amount:,} Coins ` in return",color = 0x2b2d31)
       await member.send(embed = embed) if member.dm_channel else None
@@ -179,12 +178,12 @@ class Economy(commands.Cog):
     if amount < 0:
       await ctx.send("You cannot send negative funds.",ephemeral=True,delete_after = 10)
       return
-    if member.bot and member.id != config.bot_id:
+    if member.bot and member.id != self.bot.user.id:
       await ctx.send(f"{member.mention} is a bot.\nAre you a bot aswell?")
       return
     user = ctx.author
-    user_balance = get("economy","coins",user.id)
-    member_balance = get("economy","coins",member.id)
+    user_balance = db.get("economy","coins",user.id)
+    member_balance = db.get("economy","coins",member.id)
 
     if not user_balance or user_balance == 0:
       await ctx.send("You don't have any coins.",ephemeral = True,delete_after = 10)
@@ -197,15 +196,15 @@ class Economy(commands.Cog):
       return
     user_new_balance = user_balance - amount
     member_new_balance = member_balance + amount
-    set("economy","coins",user.id,user_new_balance)
-    set("economy","coins",member.id,member_new_balance)
+    db.put("economy","coins",user.id,user_new_balance)
+    db.put("economy","coins",member.id,member_new_balance)
     embed = discord.Embed(description = f"**Successfully shared <:coins:1172819933093179443> ` {amount:,} Coins ` with {member.mention}!**",color = 0x7afa89)
     await ctx.send(embed = embed)
 
   @app_commands.command(name="leaderboard",description="See who is on the top")
   @app_commands.describe(max="Maximum members to display")
   async def leaderboard(self,interaction:discord.Interaction,max: int = 15):
-    items = board("coins",max)
+    items = db.board("coins",max)
     bank = items[0][1]
     del items[0]
     embed= discord.Embed(title="<:coins:1172819933093179443> Coins Leaderboard",description=f'**Bank** `` {bank} Coins ``\n\n' + '\n'.join(f"**<@{row[0]}> `` {row[1]} Coins ``**" for row in items))
@@ -214,28 +213,24 @@ class Economy(commands.Cog):
   @app_commands.command(name="inventory",description="View owned items & features")
   async def inventory(self,interaction:discord.Interaction,member:discord.Member=None):
     user = member or interaction.user
-    role = interaction.guild.get_role(config.booster_role)
-    if role:
-      if role in interaction.user.roles or user == interaction.user:
-        json_data = get("items","json_data",user.id)
-        if json_data != 0:
-          json_data = json.loads(json_data)
-          listing = []
-          for key, value in json_data.items():
-            if json_data[key] != 0:
-              listing.append(f'**{json_data[key]}x {getval(int(key),"name","items")}**')
-              value = '\n'.join(item for item in listing)
-          if not listing:
-            value = "No items left, lol."
-        else:
-          value = "No Items here, lol."
-        embed = discord.Embed(description=value)
-        embed.set_author(name=f"{user.name}'s Inventory",icon_url=user.avatar.url)
-        await interaction.response.send_message(embed=embed,ephemeral=True)
+    if user.premium_since or user == interaction.user:
+      json_data = db.get("items","json_data",user.id)
+      if json_data != 0:
+        json_data = json.loads(json_data)
+        listing = []
+        for key, value in json_data.items():
+          if json_data[key] != 0:
+            listing.append(f'**{json_data[key]}x {getval(int(key),"name","items")}**')
+            value = '\n'.join(item for item in listing)
+        if not listing:
+          value = "No items left, lol."
       else:
-        await interaction.response.send_message("You need to be a Server Booster to be able to view other's inventory.",ephemeral=True)
+        value = "No Items here, lol."
+      embed = discord.Embed(description=value)
+      embed.set_author(name=f"{user.name}'s Inventory",icon_url=user.avatar.url)
+      await interaction.response.send_message(embed=embed,ephemeral=True)
     else:
-      await interaction.response.send_message("No Booster Role found.")
-    
+      await interaction.response.send_message("You need to be a Server Booster to be able to view other's inventory.",ephemeral=True)
+  
 async def setup(bot):
   await bot.add_cog(Economy(bot))

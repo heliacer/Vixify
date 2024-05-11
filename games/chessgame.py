@@ -1,14 +1,13 @@
 import chess
 import discord
 from PIL import Image
-from dbmanager import exchange
+from db import GameCheckoutGUI
 from typing import Union
 import asyncio
 import io
-import config
 from discord import ui
 
-async def start_chess(interaction: discord.Interaction,players:list):
+async def start(interaction: discord.Interaction,players:list):
   board = chess.Board()
   embed = discord.Embed()
   file = get_binary_board(board=board)
@@ -36,32 +35,6 @@ def get_piece_name(board: chess.Board,uci_name):
     return chess.piece_name(board.piece_at(chess.SQUARE_NAMES.index(uci_name)).piece_type)
   except Exception:
     return None
-
-class CheckoutGUI(ui.View):
-  def __init__(self,players: list,winner,seconds):
-    super().__init__(timeout=None)
-    self.players = players
-    self.winner = winner
-    payout_button = ui.Button(label=f'Proceed to payout ({seconds})',style=discord.ButtonStyle.blurple,emoji='<:checkout:1175007951669436446>')
-    payout_button.callback = self.payout
-    self.add_item(payout_button)
-
-  async def payout(self,interaction: discord.Interaction = None,message: discord.Message = None):
-    quote = "\n\n>>> 99% of gamblers quit before they win big.\nDon't be a bitch.\nJust take another loan and win all your money back, that's how i do it. Remember: *«There are no losers, just quitters»*"
-    if self.winner:
-      pot = sum(item[1] for item in self.players)
-      exchange(self.winner[0],config.bot_id,pot)
-      embed = discord.Embed(description=f"<@{self.winner[0]}> got paid <:coins:1172819933093179443>` {pot} Coins `{quote}")
-    else:
-      embed = discord.Embed(description=f'**Both gamblers recieve their money back due to a draw.**{quote}')
-    embed.set_author(name='Gambling Checkout',icon_url='https://cdn-icons-png.flaticon.com/128/8580/8580823.png')
-    if interaction:
-      await interaction.message.delete()
-      await interaction.channel.send(embed=embed)
-    if message:
-      await message.delete()
-      await message.channel.send(embed=embed)
-
 
 
 class SubmitUCIMove(ui.Modal,title='Chess Move'):
@@ -96,15 +69,16 @@ class SubmitUCIMove(ui.Modal,title='Chess Move'):
           embed.set_thumbnail(url="attachment://board.png")
           embed.description += f'\n***{outcome.termination.name.lower().capitalize()}!***\n**Total moves:** ` {len(board.move_stack)} `'
           print(outcome.termination.value)
-          winner = next_player if outcome.termination.value == 2 else None
-          win_message = await interaction.channel.send(content=f'🏆 {interaction.user.mention} The Session has ended!\n**Winner:** ` {"◻️ White" if self.color == "black" else "◼️ Black"} ` <@{next_player[0]}>',embed=embed,view=CheckoutGUI(self.players,winner,10),file=file)
+          winner = self.current_player if outcome.termination.value == 2 else None
+          print(winner)
+          win_message = await interaction.channel.send(content=f'🏆 {self.current_player[0]} The Session has ended!\n**Winner:** ` {"◻️ White" if self.color == "black" else "◼️ Black"} ` {interaction.user.mention}',embed=embed,view=GameCheckoutGUI(self.players,[winner],10),file=file)
           for i in range(10):
             await asyncio.sleep(1)
             try:
-              await win_message.edit(view=CheckoutGUI(self.players,winner,9-i))
+              await win_message.edit(view=GameCheckoutGUI(self.players,[winner],9-i))
             except discord.NotFound:
               break
-          delayed = CheckoutGUI(self.players, next_player,0)
+          delayed = GameCheckoutGUI(self.players, [winner],0)
           await delayed.payout(message=win_message)
           return
       embed.set_image(url="attachment://board.png")
@@ -130,7 +104,7 @@ class ChessGameUI(ui.View):
     if interaction.user.id == self.current_player[0]:
       await interaction.response.send_modal(SubmitUCIMove(self.board,self.players,self.current_player,self.color))
     else:
-      await interaction.response.send_message("It's not your turn now, mafaka.",ephemeral=True)
+      await interaction.response.send_message("It's not your turn!",ephemeral=True)
 
   @ui.button(label='UCI Help',emoji='<:questionable:1175393148294414347>')
   async def help(self,interaction: discord.Interaction,button):
@@ -140,24 +114,24 @@ class ChessGameUI(ui.View):
   @ui.button(label='Give Up',emoji='<:sandclock:1203261564291911680>')
   async def giveup(self,interaction: discord.Interaction,button):
     next_player = self.players[(self.players.index(self.current_player) + 1) % len(self.players)]
-    embed = discord.Embed(description=f'**{interaction.user.mention} gave up. what a shame.**\n**Total moves:** ` {len(self.board.move_stack)} `\n<@{next_player[0]}> wins all the coins.')
+    embed = discord.Embed(description=f'**{interaction.user.mention} gave up, hat a shame.**\n**Total moves:** ` {len(self.board.move_stack)} `\n<@{next_player[0]}> wins all the coins.')
     await interaction.response.defer()
     await interaction.delete_original_response()
-    win_message = await interaction.channel.send(embed=embed,view=CheckoutGUI(self.players,next_player,10))
+    win_message = await interaction.channel.send(embed=embed,view=GameCheckoutGUI(self.players,[next_player],10))
     for i in range(10):
       await asyncio.sleep(1)
       try:
-        await win_message.edit(view=CheckoutGUI(self.players,next_player,9-i))
+        await win_message.edit(view=GameCheckoutGUI(self.players,[next_player],9-i))
       except discord.NotFound:
         break
-    delayed = CheckoutGUI(self.players, next_player,0)
+    delayed = GameCheckoutGUI(self.players, [next_player],0)
     await delayed.payout(message=win_message)
 @staticmethod
 def get_binary_board(board) -> discord.File:
     size = (500, 500)
 
     with io.BytesIO() as binary:
-        board = Generator.generate(board).resize(size, Image.ANTIALIAS)
+        board = Generator.generate(board).resize(size, Image.Resampling.LANCZOS)
         board.save(binary, "PNG"); binary.seek(0)
         return discord.File(fp = binary, filename = "board.png")
 

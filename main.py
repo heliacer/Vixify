@@ -22,7 +22,7 @@ async def on_ready():
   print(f'We have logged in as {client.user}')
   await client.tree.sync()
   print("synced slash command tree")
-  db.refresh(client.get_guild(config.guild).member_count*200,client.user.id)
+  db.refresh(client.get_guild(config.GUILD).member_count*200,client.user.id)
   await client.change_presence(activity = discord.Activity(type = discord.ActivityType.custom,name = " ",state = 'Keep your eyes on the prize!'))
 
      

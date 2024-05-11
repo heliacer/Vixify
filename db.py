@@ -105,7 +105,7 @@ class GameCheckoutGUI(discord.ui.View):
       pot = sum(item[1] for item in self.players)
       embed = discord.Embed(description='')
       for winner in self.winners:
-        exchange(winner[0],config.bot_id,pot/len(self.winners))
+        exchange(winner[0],interaction.client.user.id,pot/len(self.winners))
         embed.description += f"<@{winner[0]}> got paid <:coins:1172819933093179443>` {pot} Coins `{quote}\n"
     else:
       embed = discord.Embed(description=f'**All gamblers recieve their money back due to a draw.**{quote}')

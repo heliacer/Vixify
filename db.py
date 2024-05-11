@@ -1,7 +1,6 @@
 import sqlite3
 import json
 import discord
-import config
 from typing import List
 
 conn = sqlite3.connect('vix.db')

@@ -5,6 +5,7 @@ import config
 from discord import ui
 from collections import defaultdict
 from discord.ext import commands
+from core.plugins import Plugin
 
 content = json.load(open("assets/shopindex.json"))
 
@@ -219,10 +220,12 @@ class ShopButtons(ui.View):
   async def QuestsButton(self,interaction: discord.Interaction,button: ui.Button):
     await interaction.response.send_message("work in progress!",ephemeral=True,delete_after=120)
 
-class ShopReady(commands.Cog):
+class ShopReady(Plugin):
   def __init__(self, bot):
     self.bot = bot
     self.bot.add_view(ShopButtons())
+    super().__init__(bot=bot)
+
 
   @commands.Cog.listener()
   async def on_ready(self):

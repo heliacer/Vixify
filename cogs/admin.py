@@ -2,15 +2,11 @@ import db
 from discord.ext import commands
 import discord
 import config
+from core.plugins import Plugin
+from core.predicate import isme
 
-class Admin(commands.Cog):
-  def __init__(self, bot):
-      self.bot = bot
 
-  def isme():
-    async def predicate(ctx):
-        return ctx.author.id in config.ADMIN
-    return commands.check(predicate)
+class Admin(Plugin):
   
   @commands.command()
   @isme()

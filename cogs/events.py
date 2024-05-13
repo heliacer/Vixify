@@ -53,9 +53,11 @@ class AppealButton(discord.ui.View):
 
 
 class Events(Plugin):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.AutoShardedBot):
         self.bot = bot
         super().__init__(bot=bot)
+  
+
 
     @commands.command(name='clearheat')
     @has_admin()
@@ -64,6 +66,14 @@ class Events(Plugin):
         warnings[member.id] = []
         has_penalty[member.id] = False
         await ctx.send(f'<:confirm:1175396326272409670> Heat cleared for {member.mention}')
+        
+    @commands.command(name=f"ping")
+    async def ping(self, ctx: commands.Context):
+
+      msg = await ctx.send('Pong!')
+      await msg.edit(content='Pong! ``{0}ms``'.format(round(self.bot.latency, 1))) 
+
+      
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

@@ -26,7 +26,7 @@ class client(commands.Bot):
     @watch(path='cogs', preload=True)
     async def on_ready(self):
         await self.tree.sync()
-        print(f'I have logged in as {self.user.name} | {len(self.tree)} Commands have been synced')
+        print(f'I have logged in as {self.user.name} | {len(self.all_commands)} Commands have been synced')
         db.refresh(client.get_guild(config.GUILD).member_count*200,client.user.id)
 
 discordbot = client()

@@ -237,5 +237,5 @@ class Events(Plugin):
             await interaction.response.send_message(embed=ErrorEmbed, file=file)
 
 
-def setup(bot):
+async def setup(bot):
     await bot.add_cog(Events(bot))

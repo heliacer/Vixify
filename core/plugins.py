@@ -1,4 +1,4 @@
-from main2 import client
+from main import client
 from discord.ext import commands
 
 class Plugin(commands.Cog): 

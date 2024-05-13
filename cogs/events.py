@@ -238,4 +238,4 @@ class Events(Plugin):
 
 
 def setup(bot):
-    bot.add_cog(Events(bot))
+    await bot.add_cog(Events(bot))

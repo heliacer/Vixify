@@ -46,14 +46,14 @@
   "commands" : {
     "use_coems": {
       "name": "Use /coems",
-      "description": "Aye pasta la bay be bean",
+      "description": "Silly command for silly people",
       "price": 380,
       "id": 1001,
       "stackable" : false
     },
     "use_chatrevive": {
       "name": "Use /chatrevive",
-      "description": "Wake up dead chat",
+      "description": "Wake up a dead chat",
       "price": 400,
       "id": 1002,
       "stackable" : false

@@ -1,10 +1,10 @@
 import os
-dev = False
-if os.system == 'posix':
-  dev = True
+dev = True
+if os.name == 'posix':
+  dev = False 
 
 # Linux machine is production server (Raspberry Pi)
-# Windows machine is development server
+# All other machines are development servers
 
 ADMIN = [955187087911555152,1020995268159754321]
 SHOP_CHANNEL = 1215343913121095722 if dev else 1142779979931856896

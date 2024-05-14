@@ -1,82 +1,54 @@
-import asyncio
-import os
-import io
-import random
-import config
-import traceback
-import db
+import sys
+
+import motor.motor_asyncio
+sys.dont_write_bytecode = True
 import discord
-from discord import app_commands
 from discord.ext import commands
-from dotenv import load_dotenv
+import os
+import asyncio
+import dotenv
+from cogwatch import watch
+import db
+import config
 
-intents = discord.Intents.all()  # Enable all intents
-client = commands.Bot(
-  command_prefix="?",
-  intents=intents,
-)
+dotenv.load_dotenv()
 
-
-@client.event
-async def on_ready():
-  print(f'We have logged in as {client.user}')
-  await client.tree.sync()
-  print("synced slash command tree")
-  db.refresh(client.get_guild(config.GUILD).member_count*200,client.user.id)
-  await client.change_presence(activity = discord.Activity(type = discord.ActivityType.custom,name = " ",state = 'Keep your eyes on the prize!'))
-
-     
-@client.command()
-async def ping(ctx):
-  msg = await ctx.send('Pong!')
-  await msg.edit(content='Pong! ``{0}ms``'.format(round(client.latency, 1))) 
-
-@client.event
-async def on_command_error(ctx: commands.Context, error: commands.CommandError):
-  if isinstance(error, commands.CommandOnCooldown):
-    CooldownEmbed = discord.Embed(description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again in {error.retry_after:.2f} seconds.***')
-    await ctx.send(CooldownEmbed,ephemeral=True)
-  elif isinstance(error,commands.errors.MissingRequiredArgument):
-    await ctx.reply(f'<:progresschart:1178590023759695952> {error}')
-  elif isinstance(error, (commands.CheckFailure, commands.CommandNotFound)):
-      pass
-  else:
-    traceback.print_exception(error)
-    exception = traceback.format_exception(error)
-    file = discord.File(filename="error.log", fp=io.BytesIO(''.join(exception).encode()))
-    ErrorEmbed = discord.Embed(description=f'***<:err:1203262608929722480> There was an unhandled Internal Error. Please try again later.***')
-    ErrorEmbed.set_footer(text=error)
-    await ctx.send(embed=ErrorEmbed,file=file)
-
-@client.tree.error
-async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
-  if isinstance(error, app_commands.CommandOnCooldown):
-    CooldownEmbed = discord.Embed(description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again in {error.retry_after:.2f} seconds.***')
-    await interaction.response.send_message(embed=CooldownEmbed,ephemeral=True)
-  else:
-    traceback.print_exception(error)
-    exception = traceback.format_exception(error)
-    file = discord.File(filename="error.log", fp=io.BytesIO(exception.encode()))
-    ErrorEmbed = discord.Embed(description=f'***<:err:1203262608929722480> There was an unhandled Internal Error. Please try again later.***')
-    ErrorEmbed.set_footer(text=error)
-    await interaction.response.send_message(embed=ErrorEmbed,file=file)
+TOKEN = os.getenv('TOKEN')
+intents = discord.Intents.all()
 
 
-cogsList = []
-for file in os.listdir('cogs'):
-  if file.endswith('.py'):
-    cogsList.append(
-      f'cogs.{file[:-3]}'
-    )
+class client(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix='?', intents=intents)
+        self.hi = "hi"
+        
 
-async def load():
-  for cog in cogsList:
-    await client.load_extension(cog)
+    @watch(path='cogs', preload=True)
+    async def on_ready(self):
+        await self.tree.sync()
+        print(f'I have logged in as {self.user.name} | {len(self.all_commands)} Commands have been synced')
+        db.refresh(client.get_guild(config.GUILD).member_count*200,client.user.id)
 
-try:
-  asyncio.run(load())
-except:
-  traceback.print_exc()
+discordbot = client()
 
-load_dotenv()
-client.run(os.getenv('TOKEN'))
+async def run():
+    
+    for root, dirs, files in os.walk('./cogs'):
+        for filename in files:
+            if filename.endswith('.py'):
+                relative_path = os.path.relpath(os.path.join(root, filename), './')
+                extension_name = os.path.splitext(relative_path)[0].replace(os.sep, '.')
+                
+        
+                    
+                await discordbot.load_extension(extension_name)
+                
+                    
+    
+
+
+if __name__ == '__main__':
+    
+    asyncio.run(run())
+    discordbot.run(TOKEN)
+    

@@ -7,6 +7,7 @@ import asyncio
 import db
 import config
 import random
+from core.plugins import Plugin
 
 # TODO : add this to helpers
 def chance_of_winning(percentage):
@@ -71,10 +72,11 @@ class LootboxUI(ui.View):
 
   
 
-class Fun(commands.Cog):
+class Fun(Plugin):
   def __init__(self, bot):
     self.bot = bot
-
+    super().__init__(bot=bot)
+    
   @app_commands.command(name = "coems",description = "Silly coems generator!")
   @app_commands.checks.cooldown(1, 60, key=lambda i: (i.guild_id,i.user.id))
   async def coems(self, interaction: discord.Interaction):

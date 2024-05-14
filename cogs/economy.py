@@ -5,33 +5,15 @@ import io
 import json
 from discord import app_commands
 from discord.ext import commands
-from PIL import ImageDraw, Image, ImageFont
-
+from core.helpers import loadbarimage, getval
+from core.plugins import Plugin
 content = json.load(open("assets/shopindex.json"))
 
-def getval(id,selector,section: str):
-  for key,value in content[section].items():
-    if value["id"] == id:
-      return value[selector]
 
-
-def loadbarimage(percentage: int):
-    width, height = 400, 400
-    image = Image.new("RGBA", (width, height), (255, 0, 0, 0))
-    draw = ImageDraw.Draw(image) 
-    size = [(width / 2) - 190, (height / 2) - 190, (width / 2) + 190, (height / 2) + 190]
-    draw.arc(size, -90, (percentage / 100) * 360 - 90, fill="#AF01E7", width=35)
-    font = ImageFont.truetype('assets/Beyonders.ttf', 70)
-    draw.text([115,70], "XP", font=font, fill="white")
-    draw.text([80,180], f"{round(percentage)}%", font=font, fill="white")
-    io_bytes = io.BytesIO()
-    image.save(io_bytes, format="PNG")
-    io_bytes.seek(0)
-    return io_bytes
-
-class Economy(commands.Cog):
+class Economy(Plugin):
   def __init__(self, bot):
     self.bot = bot
+    super().__init__(bot=bot)
 
 
   @commands.hybrid_command(name= "bank", description = 'The Vixify Bank gross value')
@@ -220,7 +202,7 @@ class Economy(commands.Cog):
         listing = []
         for key, value in json_data.items():
           if json_data[key] != 0:
-            listing.append(f'**{json_data[key]}x {getval(int(key),"name","items")}**')
+            listing.append(f'**{json_data[key]}x {getval(content,int(key),"name","items")}**')
             value = '\n'.join(item for item in listing)
         if not listing:
           value = "No items left, lol."

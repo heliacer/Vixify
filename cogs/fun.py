@@ -8,10 +8,7 @@ import db
 import config
 import random
 from core.plugins import Plugin
-
-# TODO : add this to helpers
-def chance_of_winning(percentage):
-    return random.random() < percentage / 100
+from core.helpers import winchance
 
 class LootboxUI(ui.View):
   def __init__(self,next=True,coins_value=5,total_spent=0,index=1,total_rewards=[]):
@@ -40,7 +37,7 @@ class LootboxUI(ui.View):
     db.exchange(interaction.client.user.id,interaction.user.id, self.coins_value)
     self.coins_value += 5
     self.total_spent += self.coins_value
-    if chance_of_winning(80):
+    if winchance(80):
       rewards = ['undefined', 'still need to implement this part', 'but you get the idea']
       self.total_rewards.extend(rewards)
       embed2.description = f"**You opened a lootbox and found:**\n- {'\n- '.join([item for item in rewards])}"
@@ -142,9 +139,9 @@ class Fun(Plugin):
 
   @app_commands.command(name = "lootbox",description = "BETA | Take a risky action in hope of getting coins and items!")
   async def lootbox(self, interaction: discord.Interaction):
-    if not interaction.user.premium_since:
-      await interaction.response.send_message("You need to be a Nitro booster in order to use BETA commands.",ephemeral=True)
-      return
+    if interaction.user.id not in config.ADMIN:
+      if not interaction.user.premium_since:
+        return
     user_balance = db.get('economy', 'coins', interaction.user.id)
     if user_balance < 5:
       await interaction.response.send_message("You're too poor to open a lootbox. Save up at least <:coins:1172819933093179443> ` 5 Coins ` to get started.",ephemeral=True)

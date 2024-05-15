@@ -1,13 +1,11 @@
-import db
 from discord.ext import commands
 import discord
-import config
+import db
 from core.plugins import Plugin
 from core.predicate import isme
 
 
 class Admin(Plugin):
-  
   @commands.command()
   @isme()
   async def status(self, ctx, status):

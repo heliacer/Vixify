@@ -1,15 +1,16 @@
 import json
 import datetime
 import discord
+import random
 from PIL import ImageDraw, Image, ImageFont
 import io
+
 THRESHOLD = 30
 ranks = json.load(open("assets/ranks.json")).items()
 messages = {}
 warnings = {}
 has_penalty = {}
 typing_duration = {}
-
 
 def calc_message(user_messages):
     heat = 0
@@ -61,3 +62,6 @@ def loadbarimage(percentage: int):
     image.save(io_bytes, format="PNG")
     io_bytes.seek(0)
     return io_bytes
+
+def winchance(percentage):
+    return random.random() < percentage / 100

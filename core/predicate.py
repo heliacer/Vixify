@@ -1,9 +1,11 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
 import config
 
 def is_author(message: discord.Message, member: discord.Member):
     return message.author == member
+
 
 def has_admin():
     def predicate(ctx: commands.Context):
@@ -11,6 +13,6 @@ def has_admin():
     return commands.check(predicate)
 
 def isme():
-    async def predicate(ctx):
+    async def predicate(ctx: commands.Context):
         return ctx.author.id in config.ADMIN
     return commands.check(predicate)

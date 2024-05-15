@@ -1,0 +1,24 @@
+
+{
+  "send_10_coems" :{
+    "name" : "Coems 🤑",
+    "description": "Send 10 🤑 Emoji in <#1128819447650582639>",
+    "id": 3001,
+    "rewards" : {"coins":10},
+    "requirements" : {}
+  },
+  "steal_from_user":{
+    "name" : "Steality Steality",
+    "description" : "Sucessfully steal from someones Coins",
+    "id": 3002,
+    "rewards" : {"xp_percentage": 20},
+    "requirements" : {"rank":2}
+  },
+  "get_1k_coins":{
+    "name" : "1k Rich Milestone",
+    "description" : "Save up to a thousand Coins!",
+    "id": 3003,
+    "rewards" : {"role":1179461576185630730},
+    "requirements" : {}
+  }
+}

@@ -1,5 +1,5 @@
 import sys
-sys.dont_write_bytecode = False
+sys.dont_write_bytecode = True
 import discord
 from discord.ext import commands
 import os

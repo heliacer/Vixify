@@ -7,14 +7,16 @@ from collections import defaultdict
 from discord.ext import commands
 from core.plugins import Plugin
 
-content = json.load(open("assets/shopindex.json"))
 
+'''
 contentlib = {
-  "features" : "<:features:1178989659976642581>",
-  "commands" : "<:dev:1178993359738642512>",
-  "items" : "<:dimension:1178990567812771890>"
+  "role" : "<:features:1178989659976642581>",
+  "command" : "<:dev:1178993359738642512>",
+  "utility" : "<:dimension:1178990567812771890>"
 }
+'''
 
+# TODO : Needs complete rewrite
 
 def getval(id,selector,section: str):
   for key,value in content[section].items():

@@ -40,7 +40,7 @@ class LootboxUI(ui.View):
     if winchance(80):
       rewards = ['undefined', 'still need to implement this part', 'but you get the idea']
       self.total_rewards.extend(rewards)
-      embed2.description = f"**You opened a lootbox and found:**\n- {'\n- '.join([item for item in rewards])}"
+      embed2.description = "**You opened a lootbox and found:**\n- {}".format('\n- '.join(rewards))
       embed2.set_thumbnail(url='https://cdn-icons-png.flaticon.com/128/7839/7839136.png')
       if user_balance < self.coins_value + 5:
           embed2.description += f'\nAnd you spent all your money! No more lootboxes for you!'

@@ -10,45 +10,40 @@ import random
 from core.plugins import Plugin
 from core.helpers import winchance
 
+LOOTBOX_PRICE = 5
+
 class LootboxUI(ui.View):
-  def __init__(self,next=True,coins_value=5,total_spent=0,index=1,total_rewards=[]):
+  def __init__(self,next=True,index=1,total_rewards=[]):
     super().__init__()
     self.index: int = index
-    self.coins_value: int = coins_value
-    self.total_spent: int = total_spent
     self.total_rewards: list = total_rewards
     if next:
-      label = f'Open next for {self.coins_value} Coins' if self.coins_value > 5 else 'Open lootbox for 5 Coins'
-      openButton = ui.Button(label=label, emoji='<:checkout:1175007951669436446>', style=discord.ButtonStyle.primary)
+      openButton = ui.Button(label='Open lootbox', emoji='<:checkout:1175007951669436446>', style=discord.ButtonStyle.primary)
       openButton.callback = self.open
       self.add_item(openButton)
-    if self.coins_value > 5:
+    if self.index > 1:
       claimButton = ui.Button(label='Claim All', emoji='<:features:1178989659976642581>', style=discord.ButtonStyle.gray)
       claimButton.callback = self.claim
       self.add_item(claimButton)
 
   async def open(self, interaction: discord.Interaction):
-    print(f"Coins value: {self.coins_value}\nTotal spent: {self.total_spent}\nIndex: {self.index}")
     user_balance = db.get('economy', 'coins', interaction.user.id)
     embed1 = discord.Embed(description='<a:loading:1239608763447640114> ***Opening lootbox...***', color=discord.Color.blurple())
     await interaction.response.edit_message(embed=embed1, view=None)
     await asyncio.sleep(1)
     embed2 = discord.Embed()
-    db.exchange(interaction.client.user.id,interaction.user.id, self.coins_value)
-    self.coins_value += 5
-    self.total_spent += self.coins_value
+    db.exchange(interaction.client.user.id,interaction.user.id,LOOTBOX_PRICE)
     if winchance(80):
       rewards = ['undefined', 'still need to implement this part', 'but you get the idea']
+      
       self.total_rewards.extend(rewards)
       embed2.description = f"**You opened a lootbox and found:**\n- {'\n- '.join([item for item in rewards])}"
       embed2.set_thumbnail(url='https://cdn-icons-png.flaticon.com/128/7839/7839136.png')
-      if user_balance < self.coins_value + 5:
+      if user_balance < LOOTBOX_PRICE :
           embed2.description += f'\nAnd you spent all your money! No more lootboxes for you!'
           self.setday(interaction.user.id)
       await interaction.edit_original_response(embed=embed2,view=LootboxUI(
-        next=user_balance > self.coins_value + 5,
-        coins_value=self.coins_value,
-        total_spent=self.total_spent,
+        next=user_balance > LOOTBOX_PRICE,
         index=self.index,
         total_rewards=self.total_rewards
         ))

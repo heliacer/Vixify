@@ -5,10 +5,8 @@ import io
 import json
 from discord import app_commands
 from discord.ext import commands
-from core.helpers import loadbarimage, getval
+from core.helpers import loadbarimage, getItemByID
 from core.plugins import Plugin
-content = json.load(open("assets/shopindex.json"))
-
 
 class Economy(Plugin):
   def __init__(self, bot):
@@ -195,14 +193,17 @@ class Economy(Plugin):
   @app_commands.command(name="inventory",description="View owned items & features")
   async def inventory(self,interaction:discord.Interaction,member:discord.Member=None):
     user = member or interaction.user
-    if user.premium_since or user == interaction.user:
+    if user.premium_since != None or user == interaction.user:
+      await interaction.response.send_message(db.items.get(user.id)) # TODO : make this getall 
+      '''
+      #redo this item get part use db.items
       json_data = db.get("items","json_data",user.id)
       if json_data != 0:
         json_data = json.loads(json_data)
         listing = []
         for key, value in json_data.items():
           if json_data[key] != 0:
-            listing.append(f'**{json_data[key]}x {getval(content,int(key),"name","items")}**')
+            listing.append(f'**{json_data[key]}x {getItemByID(value)}**')
             value = '\n'.join(item for item in listing)
         if not listing:
           value = "No items left, lol."
@@ -211,6 +212,7 @@ class Economy(Plugin):
       embed = discord.Embed(description=value)
       embed.set_author(name=f"{user.name}'s Inventory",icon_url=user.avatar.url)
       await interaction.response.send_message(embed=embed,ephemeral=True)
+      '''
     else:
       await interaction.response.send_message("You need to be a Server Booster to be able to view other's inventory.",ephemeral=True)
   

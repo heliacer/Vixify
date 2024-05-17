@@ -4,7 +4,9 @@ import discord
 import random
 from PIL import ImageDraw, Image, ImageFont
 import io
+import json
 
+CONTENT = json.load(open("assets/items.json"))
 THRESHOLD = 30
 ranks = json.load(open("assets/ranks.json")).items()
 messages = {}
@@ -42,12 +44,6 @@ async def broadcast(message: discord.Message,content,title=None,view=None,thumb_
   except Exception as e:
     print(e)
     await message.channel.send(embed=embed,view=view)
-    
-def getval(content, id,selector,section: str):
-  for key,value in content[section].items():
-    if value["id"] == id:
-      return value[selector]
-
 
 def loadbarimage(percentage: int):
     width, height = 400, 400
@@ -65,3 +61,11 @@ def loadbarimage(percentage: int):
 
 def winchance(percentage):
     return random.random() < percentage / 100
+
+def itemsByType(types: list):
+  return [item for item in CONTENT if item["type"] in types]
+
+def getItemByID(id: int):
+  for item in CONTENT:
+    if item["id"] == id:
+      return item

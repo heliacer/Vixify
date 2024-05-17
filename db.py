@@ -1,7 +1,7 @@
 import sqlite3
 import json
 import discord
-from typing import List
+from typing import List, Dict
 
 conn = sqlite3.connect('vix.db')
 c = conn.cursor()
@@ -65,12 +65,14 @@ class items():
     data[item_id] = amount
     put('items','json_data',user_id,json.dumps(data))
     
-  def get(user_id: int,item_id: int):
+  def get(user_id: int,item_id: int = None):
     result = get('items','json_data',user_id)
     if result != 0:
-      data = json.loads(result).get(item_id,0)
-      return data
-    return result
+      items: list = json.loads(result)
+      if item_id:
+        return items.get(item_id)
+      return items
+    return []
   
   def increase(user_id: int,item_id: int,step: int):
     amount = items.get(user_id,item_id)

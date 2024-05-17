@@ -81,7 +81,11 @@ class Economy(Plugin):
     
     user_balance = db.get("economy","coins",user.id)
     member_balance = db.get("economy","coins",member.id)
-    json_data = db.get("items","json_data",member.id)
+    padlocks = db.items.get(member.id,1001)
+    print(padlocks)
+    # TODO : redo this whole item get part
+
+    '''
 
     if json_data != 0:
       json_data = json.loads(json_data)
@@ -99,6 +103,7 @@ class Economy(Plugin):
           await ctx.send(embed=embed)
           await member.send(embed=embed2) if member.dm_channel else None
           return
+    '''
 
     if user_balance == 0:
         await ctx.send("You don't have any Coins left.", ephemeral=True, delete_after=10)
@@ -194,7 +199,8 @@ class Economy(Plugin):
   async def inventory(self,interaction:discord.Interaction,member:discord.Member=None):
     user = member or interaction.user
     if user.premium_since != None or user == interaction.user:
-      await interaction.response.send_message(db.items.get(user.id)) # TODO : make this getall 
+      await interaction.response.send_message(db.items.get(user.id)) 
+      # TODO : redo item get part
       '''
       #redo this item get part use db.items
       json_data = db.get("items","json_data",user.id)

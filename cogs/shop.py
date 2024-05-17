@@ -6,7 +6,7 @@ from discord import ui
 from collections import defaultdict
 from discord.ext import commands
 from core.plugins import Plugin
-from core.catalog import itemsByType
+from core.helpers import itemsByType
 
 
 EMOJIS = {

@@ -4,13 +4,14 @@ import discord
 import random
 from PIL import ImageDraw, Image, ImageFont
 import io
+import json
 
+CONTENT = json.load(open("assets/items.json"))
 THRESHOLD = 30
 ranks = json.load(open("assets/ranks.json")).items()
 messages = {}
 warnings = {}
 has_penalty = {}
-typing_duration = {}
 
 def calc_message(user_messages):
     heat = 0
@@ -42,12 +43,6 @@ async def broadcast(message: discord.Message,content,title=None,view=None,thumb_
   except Exception as e:
     print(e)
     await message.channel.send(embed=embed,view=view)
-    
-def getval(content, id,selector,section: str):
-  for key,value in content[section].items():
-    if value["id"] == id:
-      return value[selector]
-
 
 def loadbarimage(percentage: int):
     width, height = 400, 400
@@ -63,5 +58,40 @@ def loadbarimage(percentage: int):
     io_bytes.seek(0)
     return io_bytes
 
-def winchance(percentage):
+def winchance(percentage) -> bool:
     return random.random() < percentage / 100
+
+def itemsByType(types: list):
+  return [item for item in CONTENT if item["type"] in types]
+
+def getItemByID(id: int):
+  for item in CONTENT:
+    if item["id"] == id:
+      return item
+    
+def nextItemPrice(user: discord.Member,items:str,sale:int):
+    user_roles: list = [role.id for role in user.roles]
+    sorted_features: list = sorted(items, key=lambda item: item["price"])
+    next_item: dict = next((item for item in sorted_features if item["id"] not in user_roles), None)
+    return next_item["price"] * sale if next_item else 0
+
+
+def PropertyByItemID(id,property,items: str):
+  for item in items:
+    if item["id"] == id:
+      return item[property]
+    
+
+def stripCodeBlocks(content: str):
+  while "```" in content:
+    start = content.find("```")
+    end = content.find("```", start + 3)
+    content = content[:start] + content[end + 3:]
+  return content
+
+def isauthor(message: discord.Message, member: discord.Member):
+    return message.author == member
+
+
+def isprivileged(member: discord.Member):
+    return member.premium_since or member.guild_permissions.administrator or member.guild.owner == member

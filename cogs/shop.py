@@ -1,54 +1,48 @@
 import discord
 import db
-import json
 import config
 from discord import ui
 from collections import defaultdict
 from discord.ext import commands
 from core.plugins import Plugin
+from core.helpers import itemsByType, nextItemPrice, PropertyByItemID
 
-content = json.load(open("assets/shopindex.json"))
-
-contentlib = {
-  "features" : "<:features:1178989659976642581>",
+EMOJIS = {
+  "roles" : "<:features:1178989659976642581>",
   "commands" : "<:dev:1178993359738642512>",
-  "items" : "<:dimension:1178990567812771890>"
+  "utilities" : "<:dimension:1178990567812771890>"
 }
 
-
-def getval(id,selector,section: str):
-  for key,value in content[section].items():
-    if value["id"] == id:
-      return value[selector]
-
-def next_item_price(user,section:str,sale:int):
-    user_roles = [role.id for role in user.roles]
-    sorted_features = sorted(content[section].items(), key=lambda x: x[1]["price"])
-    next_item = next((feature for feature in sorted_features if feature[1]["id"] not in user_roles), None)
-    return next_item[1]["price"]*sale if next_item else 0
+ITEMS = {
+  "roles": itemsByType(["role"]), # returns a list of items [{},{},{}] by type
+  "commands": itemsByType(["command"]),
+  "utilities": itemsByType(["utility"])
+}
     
-async def loadpage(interaction: discord.Interaction,page,balance,sale_percent: int,section: str,selection = None,price = None):
+async def loadpage(interaction: discord.Interaction,page:int,balance:int,sale_percent: int,section: str,selection: list = None,price: int = None):
   embeds = []
   price = price or 0
-  display = list(content[section].items())[6*(page-1):6*page]
+  display = ITEMS[section][6*(page-1):6*page]
   left = True if page == 1 else False
+
   selection_counts = defaultdict(int)
   if selection:
-      selection_counts = defaultdict(int)
-      for item in selection:
-          name = getval(item, "name",section)
-          selection_counts[name] += 1
+      for item_id in selection:
+          itemname = PropertyByItemID(item_id, "name", ITEMS[section])
+          selection_counts[itemname] += 1
       selection_lines = [f'{count}x {name}' for name, count in selection_counts.items()]
       selectionvalue = '\n'.join(selection_lines)
   else:
       selectionvalue = "*No items selected*"
+
   try:
-    right = not bool(list(content[section])[page * 6])
+    right = not bool(ITEMS[section][page * 6])
   except IndexError:
     right = True
-  page_embed = discord.Embed(title=f"{contentlib[section]} {section.capitalize()}",description="")
+  page_embed = discord.Embed(title=f"{EMOJIS[section]} {section.capitalize()}",description="")
   user_roles = [role.id for role in interaction.user.roles]
-  for key, feature in display:
+
+  for feature in display:
     if feature["id"] in user_roles:
       balance_format = f"<:badge:1178949476308766771> `` Owned ``" 
     elif int(feature["price"] * sale_percent) <= balance:
@@ -56,10 +50,11 @@ async def loadpage(interaction: discord.Interaction,page,balance,sale_percent: i
     elif int(feature["price"] *sale_percent) > balance:
       balance_format = f"<:disabledcoins:1178939795288891432> *`` {int(feature['price'] * sale_percent)} Coins ``*" 
     page_embed.add_field(name=feature["name"],value=f"*{feature['description']}*\n{balance_format}",inline=True)
-  page_embed.set_footer(text=f"Page {page}/{(len(content[section].items())+5)//6}")
+  page_embed.set_footer(text=f"Page {page}/{(len(ITEMS[section])+5)//6}")
   embeds.append(page_embed)
   transaction_embed = discord.Embed(description="")
-  next = next_item_price(interaction.user,section,sale_percent)
+
+  next = nextItemPrice(interaction.user,ITEMS[section],sale_percent)
   if next == 0:
     transaction_embed.add_field(name="<:finishline:1175568414950031471> You've reached the end!",value="**There is nothing left to buy in this section.\nAsk <@955187087911555152> to add more!** ")
   elif next <= balance:
@@ -76,14 +71,11 @@ async def loadpage(interaction: discord.Interaction,page,balance,sale_percent: i
     transaction_embed.description = "**Save some more coins up for the next item by chatting a bit!**\nCheck your balance with </coins:1172931104890703984>,\nafter gathering enough come back!"
     transaction_embed.title = "<:fireup:1175569234982604870> Aw, not quite yet!" 
   embeds.append(transaction_embed)
-  try:
-    await interaction.edit_original_response(embeds=embeds,view=MainMenu(interaction,page,left,right,balance,selection,section,price,sale_percent))
-  except Exception as e:
-    await interaction.edit_original_response(content=f"There was an error loading the page.\n{e}")
-  
+
+  await interaction.edit_original_response(embeds=embeds,view=MainMenu(interaction,page,left,right,balance,selection,section,price,sale_percent))
 
 class MainMenu(ui.View):
-  def __init__(self, parent, page, left_disabled, right_disabled,balance,selection,section,price,sale_percent):
+  def __init__(self, parent:discord.Interaction, page: int, left_disabled: bool, right_disabled: bool,balance: int,selection: list,section: str,price: int,sale_percent: int):
     super().__init__(timeout=None)
     self.parent = parent
     self.page = page
@@ -97,10 +89,11 @@ class MainMenu(ui.View):
     buttoncheckout = ui.Button(emoji="<:checkout:1175007951669436446> ",label="Checkout",custom_id="view.ButtonCheckout",row=1)
     buttonleft = ui.Button(emoji="<:arrowleft:1173619127106142239> ",custom_id="view.ArrowLeft",disabled=left_disabled,row=1)
     buttonright = ui.Button(emoji="<:arrowright:1173619195624308776> ",custom_id="view.ArrowRight",disabled=right_disabled,row=1)
-    items = list(content[self.section].items())[6*(page-1):6*page]
-    user_ids = [role.id for role in parent.user.roles]
-    roleselect = [id for id in self.selection if len(str(id)) > 4]
-    options = [discord.SelectOption(label=feature["name"],value=feature["id"]) for key,feature in items if int(feature["price"]*self.sale_percent) <= balance-price and feature["id"] not in roleselect and feature["id"] not in user_ids]
+    items = list(ITEMS[self.section])[6*(page-1):6*page]
+    user_item_ids = [role.id for role in parent.user.roles]
+    user_item_ids.extend(item[0] for item in db.items.getall(parent.user.id))
+    nonstackable = [id for id in self.selection if len(str(id)) > 4 or  PropertyByItemID(id, "stack", ITEMS[self.section]) == 1]
+    options = [discord.SelectOption(label=item["name"],value=item["id"]) for item in items if int(item["price"]*self.sale_percent) <= balance-price and item["id"] not in nonstackable and item["id"] not in user_item_ids]
     menuselect = ui.Select(custom_id="view.MenuSelect", placeholder="Select from Page", min_values=1, max_values=1, options=options,row=0)
     
     buttoncheckout.callback = self.checkout
@@ -126,11 +119,11 @@ class MainMenu(ui.View):
 
   async def removeitem(self, interaction: discord.Interaction):
     await interaction.response.defer()
-    role_id = self.selection[-1]
-    for key,value in content[self.section].items():
-      if value["id"] == role_id:
-        price = int(value["price"] * self.sale_percent)
-    self.selection.remove(role_id)
+    item_id = self.selection[-1]
+    for item in ITEMS[self.section]:
+      if item["id"] == item_id:
+        price = int(item["price"] * self.sale_percent)
+    self.selection.remove(item_id)
     await loadpage(self.parent, self.page,self.balance,self.sale_percent,self.section,self.selection,self.price-price)
    
   async def checkout(self, interaction: discord.Interaction):
@@ -138,7 +131,7 @@ class MainMenu(ui.View):
     checkout_embed = discord.Embed(title="Are you sure?",description=f"**This action is irreversible.**")
     selection_counts = defaultdict(int)
     for item in self.selection:
-        name = getval(item, "name",self.section)
+        name = PropertyByItemID(item, "name",ITEMS[self.section])
         selection_counts[name] += 1
     selection_lines = [f'{count}x {name}' for name, count in selection_counts.items()]
     selectionvalue = '\n'.join(selection_lines)
@@ -148,12 +141,10 @@ class MainMenu(ui.View):
 
   async def itemselect(self,interaction: discord.Interaction):
     await interaction.response.defer()
-    role_id = int(interaction.data["values"][0])
-    package = content[self.section].items()
-    for key, value in package:
-      if value["id"] == role_id:
-        price = int(value["price"] * self.sale_percent)
-    self.selection.append(role_id)
+    item_id = int(interaction.data["values"][0])
+    self.selection.append(item_id)
+    package = ITEMS[self.section]
+    price = PropertyByItemID(item_id, "price", package) * self.sale_percent
     await loadpage(self.parent, self.page, self.balance,self.sale_percent,self.section,self.selection,self.price+price)
 
 class CheckoutButtons(ui.View):
@@ -191,7 +182,7 @@ class SectionSelect(ui.View):
     self.parent = parent
     self.balance = db.get("economy","coins",parent.user.id)
 
-  options = [discord.SelectOption(label=key.capitalize(),value=key,emoji=value) for key, value in contentlib.items()]
+  options = [discord.SelectOption(label=key.capitalize(),value=key,emoji=value) for key, value in EMOJIS.items()]
   @ui.select(custom_id="View.SectionSelect",placeholder="Select a option",min_values=1,max_values=1,options=options,row=0)
   async def selection(self,interaction:discord.Interaction,select: ui.Select):
     await interaction.response.defer()

@@ -5,8 +5,6 @@ from discord.ext import commands
 import os
 import asyncio
 import dotenv
-import config
-import db
 
 dotenv.load_dotenv()
 
@@ -19,8 +17,7 @@ class Client(commands.Bot):
 
     async def on_ready(self):
         await self.tree.sync()
-        print(f'I have logged in as {self.user.name} | {len(self.all_commands)} Commands have been synced')
-        db.refresh(client.get_guild(config.GUILD).member_count*200,client.user.id)
+        print(f'I have logged in as {self.user.name} | {len(self.all_commands)} Commands have been synced') 
 
 client = Client()
 

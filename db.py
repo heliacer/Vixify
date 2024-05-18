@@ -1,7 +1,9 @@
 import sqlite3
 import json
-import discord
-from typing import List
+import os
+from typing import List, Tuple
+
+BASE = {'economy':['user_id','coins','rank','xp'],'items':['user_id','json_data']}
 
 conn = sqlite3.connect('vix.db')
 c = conn.cursor()
@@ -10,9 +12,13 @@ c.execute('''CREATE TABLE IF NOT EXISTS economy (user_id INTEGER PRIMARY KEY,coi
 c.execute('''CREATE TABLE IF NOT EXISTS items (user_id INTEGER PRIMARY KEY, json_data TEXT);''')
 conn.commit()
 
-def refresh(value: int,id: int):
+def init(value: int,id: int):
   c.execute('''INSERT OR IGNORE INTO economy (user_id, coins) VALUES (?, ?);''', (id, value))
   conn.commit()
+
+def tablehasdata(table):
+  c.execute(f'SELECT * FROM {table}')
+  return c.fetchone() != None
 
 def drop(table:str):
   c.execute(f'DROP TABLE {table}')
@@ -56,63 +62,47 @@ def board(value:str, count:int = None):
   return c.fetchall()
 
 class items():
-  def put(user_id :int,item_id: int,amount: int = 0):
-    result = get("items","json_data",user_id)
+  def put(user_id: int, item_id: int, amount: int = 0):
+    result = get("items", "json_data", user_id)
+    data: List[Tuple[int, int]]
     if result == 0:
-      data = {}
+      data = []
+      data.append((item_id, amount))
     else:
       data = json.loads(result)
-    data[item_id] = amount
-    put('items','json_data',user_id,json.dumps(data))
-    
-  def get(user_id: int,item_id: int):
-    result = get('items','json_data',user_id)
-    if result != 0:
-      data = json.loads(result).get(item_id,0)
-      return data
-    return result
-  
-  def increase(user_id: int,item_id: int,step: int):
-    amount = items.get(user_id,item_id)
-    amount += step
-    items.put(user_id,items,amount)
+      for i, item in enumerate(data):
+        if item[0] == item_id:
+          data[i] = (item_id, amount)
+          break
+    put('items', 'json_data', user_id, json.dumps(data))
 
-  def decrease(user_id: int,item_id: int,step: int):
-    amount = items.get(user_id,item_id)
-    amount -= step
-    items.put(user_id,items,amount)
+  def get(user_id: int, item_id: int = None):
+    result = get('items', 'json_data', user_id)
+    if result != 0:
+      items: List[Tuple[int, int]] = json.loads(result)
+      if item_id:
+        for item in items:
+          if item[0] == item_id:
+            return int(item[1])
+    return 0
+
+  def getall(user_id: int) -> List[Tuple[int, int]]:
+    result = get('items', 'json_data', user_id)
+    if result != 0:
+      return json.loads(result)
+    return []
+
+  def increase(user_id: int, item_id: int, step: int):
+    amount = items.get(user_id, item_id)
+    items.put(user_id, item_id, amount + step)
+
+  def decrease(user_id: int, item_id: int, step: int):
+    amount = items.get(user_id, item_id)
+    items.put(user_id, item_id, amount - step)
 
 def load(data: dict):
-  base = {'economy':['user_id','coins','rank','xp'],'items':['user_id','json_data']}
   for table in data:
     for item in data[table]:
       for value in item[1:]:
-        put(table, base[table][item.index(value)],item[0],value)
+        put(table, BASE[table][item.index(value)],item[0],value)
 
-class GameCheckoutGUI(discord.ui.View):
-  def __init__(self,players: list,winners: List[List[int]],seconds):
-    super().__init__(timeout=None)
-    self.players = players
-    self.winners = winners
-    payout_button = discord.ui.Button(label=f'Proceed to payout ({seconds})',style=discord.ButtonStyle.blurple,emoji='<:checkout:1175007951669436446>')
-    payout_button.callback = self.payout
-    self.add_item(payout_button)
-
-  async def payout(self,interaction: discord.Interaction = None,message: discord.Message = None):
-    quote = "\n\n>>> 99% of gamblers quit before they win big. Don't be a bitch.\nJust take another loan and win all your money back, that's how I do it. Remember: *«There are no losers, just quitters»*"
-    if self.winners:
-      pot = sum(item[1] for item in self.players)
-      embed = discord.Embed(description='')
-      for winner in self.winners:
-        exchange(winner[0],interaction.client.user.id,pot/len(self.winners))
-        embed.description += f"<@{winner[0]}> got paid <:coins:1172819933093179443>` {pot} Coins `{quote}\n"
-    else:
-      embed = discord.Embed(description=f'**All gamblers recieve their money back due to a draw.**{quote}')
-    embed.set_author(name='Gambling Checkout',icon_url='https://cdn-icons-png.flaticon.com/128/8580/8580823.png')
-    if interaction:
-      await interaction.message.delete()
-      await interaction.channel.send(embed=embed)
-    if message:
-      print(message)
-      await message.delete()
-      await message.channel.send(embed=embed)

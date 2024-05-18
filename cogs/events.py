@@ -2,20 +2,13 @@ import discord
 import config
 import db
 from discord.ext import commands
-from core.predicate import has_admin, is_author
-from core.helpers import broadcast, messages, warnings, has_penalty, calc_cooldown, calc_message, typing_duration, ranks
+from core.helpers import messages, warnings, has_penalty, ranks
+from core.helpers import broadcast, calc_cooldown, calc_message, stripCodeBlocks, isauthor
 import datetime
 from discord import app_commands
 import traceback
 from core.plugins import Plugin
 import io
-
-# TODO: this needs some serious refactoring and cleanup - it's a mess
-
-# TODO: make a type listener which will bypass heat addition after typing for a certain amount of time ( 20 seconds )
-
-
-
 
 class ConfirmDeclineButtons(discord.ui.View):
   def __init__(self,original_message: discord.Message):
@@ -57,10 +50,8 @@ class Events(Plugin):
         self.bot = bot
         super().__init__(bot=bot)
   
-
-
     @commands.command(name='clearheat')
-    @has_admin()
+    @commands.has_permissions(administrator=True)
     async def clearheat(self, ctx: commands.Context, member: discord.Member):
         messages[member.id] = []
         warnings[member.id] = []
@@ -73,9 +64,7 @@ class Events(Plugin):
       msg = await ctx.send('Pong!')
       await msg.edit(content='Pong! ``{0}ms``'.format(round(self.bot.latency, 1))) 
 
-      
-
-    @commands.Cog.listener()
+    @commands.Cog.listener() # this needs the most refactoring
     async def on_message(self, message: discord.Message):
         if message.author.bot:
             return
@@ -83,10 +72,7 @@ class Events(Plugin):
             return
 
         # Ignore code blocks
-        while "```" in message.content:
-            start = message.content.find("```")
-            end = message.content.find("```", start + 3)
-            message.content = message.content[:start] + message.content[end + 3:]
+        message.content = stripCodeBlocks(message.content)
 
         # Add heat, calculate stuff
         content_length = len(message.content)
@@ -122,7 +108,7 @@ class Events(Plugin):
                     has_penalty[message.author.id] = True
                     duration = datetime.timedelta(minutes=30)
                     await message.author.timeout(duration)
-                    await message.channel.purge(limit=10, check=lambda msg: is_author(msg, message.author))
+                    await message.channel.purge(limit=10, check=lambda msg: isauthor(msg, message.author))
                     await broadcast(message=message, title='Heavy message spam warning',
                                     content=f"**You exceeded the heat limit, {message.author.mention} ! **\nYou have been timed out for 30 Minutes.\nDon't spam messages in order to get coins.\n*Doing this again could lead to a big coin loss. If you feel like this was an error, click appeal*",
                                     view=AppealButton(channel=self.bot.get_channel(config.MOD_CHANNEL),
@@ -147,55 +133,53 @@ class Events(Plugin):
                                     thumb_url='https://media1.tenor.com/m/mAz6MzVaXxYAAAAd/duck-gun.gif')
                 return
 
-            # Rewarding system
-            if content_length > 200:
-                content_length = 200
-            coins_new = content_length // 10
-            if message.author.premium_since:
-                coins_new = content_length // 8
-            xp_new = content_length // 4
-            user_id = message.author.id
-            user_rank = db.get("economy", "rank", user_id)
-            user_xp = db.get("economy", "xp", user_id)
-            bank_balance = db.get('economy', 'coins', self.bot.user.id)
-            rank_new = 0
-            if user_rank != 0:
-                if user_xp + xp_new >= (user_rank) * 120:
-                    while user_xp + xp_new >= (user_rank) * 120:
-                        rank_new += 1
-                        msg = ""
-                        for key, value in ranks:
-                            if value["rank"] == user_rank + rank_new:
-                                role = message.guild.get_role(value["roleid"])
-                                if role:
-                                    await message.author.add_roles(role)
-                                    msg = f"\n You just gathered `` {role.name} ``"
-                        xp_new = xp_new - ((user_rank) * 120 - 120)
-                        user_xp = 0
-                    await message.channel.send(
-                        f"**Congrats {message.author.mention}, You just reached <:level:1172820830812643389> `` Rank {user_rank + rank_new} ``{msg}**",
-                        allowed_mentions=None)
-            else:
-                if user_xp + xp_new > 15:
+        # Rewarding system
+        if content_length > 200:
+            content_length = 200
+        coins_new = content_length // 10
+        if message.author.premium_since:
+            coins_new = content_length // 8
+        xp_new = content_length // 4
+        user_id = message.author.id
+        user_rank = db.get("economy", "rank", user_id)
+        user_xp = db.get("economy", "xp", user_id)
+        bank_balance = db.get('economy', 'coins', self.bot.user.id)
+        rank_new = 0
+        if user_rank != 0:
+            if user_xp + xp_new >= (user_rank) * 120:
+                while user_xp + xp_new >= (user_rank) * 120:
                     rank_new += 1
-                    await message.channel.send(
-                        f"**:tada: Congrats {message.author.mention}, You just reached <:level:1172820830812643389> `` Rank {user_rank + rank_new} `` !\n\nTIP:** *You can exchange coins earned by chatting in <#{config.SHOP_CHANNEL}>.\nEnjoy your stay!*")
+                    msg = ""
+                    for key, value in ranks:
+                        if value["rank"] == user_rank + rank_new:
+                            role = message.guild.get_role(value["roleid"])
+                            if role:
+                                await message.author.add_roles(role)
+                                msg = f"\n You just gathered `` {role.name} ``"
+                    xp_new = xp_new - ((user_rank) * 120 - 120)
                     user_xp = 0
-                    xp_new = xp_new - 15
-            db.put("economy", "rank", user_id, user_rank + rank_new)
-            db.put("economy", "xp", user_id, xp_new + user_xp)
-            if bank_balance < coins_new:
-                if not bank_balance == 0:
-                    db.exchange(user_id, self.bot.user.id, bank_balance)
-                    await message.channel.send(
-                        '@everyone :megaphone: The Bank is empty!!! No more coin rewards!!! All items are on 50% Sale go go go buy now !!!')
-                else:
-                    pass
-            else:
-                if bank_balance - coins_new < message.guild.member_count * 100 and not bank_balance < message.guild.member_count * 100:
-                    await message.channel.send(
-                        '@everyone :megaphone: The bank is getting emptier... All items are on 75% Sale!!!')
-                db.exchange(user_id, self.bot.user.id, coins_new)
+                await message.channel.send(
+                    f"**Congrats {message.author.mention}, You just reached <:level:1172820830812643389> `` Rank {user_rank + rank_new} ``{msg}**",
+                    allowed_mentions=None)
+        else:
+            if user_xp + xp_new > 15:
+                rank_new += 1
+                await message.channel.send(
+                    f"**:tada: Congrats {message.author.mention}, You just reached <:level:1172820830812643389> `` Rank {user_rank + rank_new} `` !\n\nTIP:** *You can exchange coins earned by chatting in <#{config.SHOP_CHANNEL}>.\nEnjoy your stay!*")
+                user_xp = 0
+                xp_new = xp_new - 15
+        db.put("economy", "rank", user_id, user_rank + rank_new)
+        db.put("economy", "xp", user_id, xp_new + user_xp)
+        if bank_balance < coins_new:
+            if not bank_balance == 0:
+                db.exchange(user_id, self.bot.user.id, bank_balance)
+                await message.channel.send(
+                    '@everyone :megaphone: The Bank is empty!!! No more coin rewards!!! All items are on 50% Sale go go go buy now !!!')
+        else:
+            if bank_balance - coins_new < message.guild.member_count * 100 and not bank_balance < message.guild.member_count * 100:
+                await message.channel.send(
+                    '@everyone :megaphone: The bank is getting emptier... All items are on 75% Sale!!!')
+            db.exchange(user_id, self.bot.user.id, coins_new)
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
@@ -205,11 +189,11 @@ class Events(Plugin):
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
         if isinstance(error, commands.CommandOnCooldown):
-            CooldownEmbed = discord.Embed(
-                description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again in {error.retry_after:.2f} seconds.***')
-            await ctx.send(embed=CooldownEmbed, ephemeral=True)
-        elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.reply(f'<:progresschart:1178590023759695952> {error}')
+            embed = discord.Embed(description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again in {error.retry_after:.2f} seconds.***')
+            await ctx.send(embed=embed, ephemeral=True)
+        elif isinstance(error, (commands.MissingRequiredArgument,commands.MemberNotFound,commands.BadArgument)):
+            embed = discord.Embed(description=f'**<:err:1203262608929722480> {error}**')
+            await ctx.send(embed=embed)
         elif isinstance(error, (commands.CheckFailure, commands.CommandNotFound)):
             pass
         else:

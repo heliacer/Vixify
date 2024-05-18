@@ -1,0 +1,75 @@
+[
+  {
+    "name": "Upload Images",
+    "description": "Send images & files",
+    "price": 120,
+    "id": 1142839654748528842,
+    "type": "role"
+  },
+  {
+    "name": "Embed Links",
+    "description": "Link Previews & GIFs",
+    "price": 150,
+    "id": 1142839928674332833,
+    "type": "role"
+  },
+  {
+    "name": "External Nitro Expressions",
+    "description": "Stickers, sounds & emojis",
+    "price": 200,
+    "id": 1142840441641910382,
+    "type": "role"
+  },
+  {
+    "name": "Voice Messages",
+    "description": "Send Audio Recordings",
+    "price": 230,
+    "id": 1178599243599061102,
+    "type": "role"
+  },
+  {
+    "name": "Video Streaming",
+    "description": "Stream in VC's",
+    "price": 260,
+    "id": 1170509011372756992,
+    "type": "role"
+  },
+  {
+    "name": "Use Soundboard",
+    "description": "Go wild with sounds.",
+    "price": 320,
+    "id": 1170509297332002897,
+    "type": "role"
+  },
+  {
+    "name": "Set Nickname",
+    "description": "Set your own Nickname.",
+    "price": 350,
+    "id": 1142840888926679152,
+    "type": "role"
+  },
+  {
+    "name": "Use /coems",
+    "description": "Silly command for silly people",
+    "price": 380,
+    "id": 1001,
+    "type" : "command",
+    "stack" : 1
+  },
+  {
+    "name": "Use /chatrevive",
+    "description": "Wake up a dead chat",
+    "price": 400,
+    "id": 1002,
+    "type": "command",
+    "stack" : 1
+  },
+  {
+    "name": "Padlock",
+    "description": "Protects your coins",
+    "price": 200,
+    "id": 2001,
+    "type": "utility",
+    "stack" : 1
+  }
+]

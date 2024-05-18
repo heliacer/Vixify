@@ -72,6 +72,7 @@ class items():
         for item in items:
           if item[0] == item_id:
             return int(item[1])
+        return 0
       return items
     return []
   

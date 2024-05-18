@@ -16,8 +16,8 @@ class Fun(Plugin):
   @app_commands.command(name = "coems",description = "Silly coems generator!")
   @app_commands.checks.cooldown(1, 60, key=lambda i: (i.guild_id,i.user.id))
   async def coems(self, interaction: discord.Interaction):
-    role = interaction.guild.get_role(1178726195467145256)
-    if role not in interaction.user.roles:
+    item = db.items.get(interaction.user.id,1001)
+    if item == 0:
       await interaction.response.send_message(f"You didn't buy this feature yet.\nSave up <:coins:1172819933093179443> ` 350 Coins ` and get it in the <#{config.SHOP_CHANNEL}>!",ephemeral=True)
       return
     await interaction.response.send_message("Generating coems :money_mouth:",ephemeral=True)
@@ -66,29 +66,26 @@ class Fun(Plugin):
   @app_commands.command(name = "chatrevive",description = "Pings a role to revive the chat!")
   @app_commands.checks.cooldown(1, 1600, key=lambda i: (i.guild_id))
   async def chatrevive(self, interaction: discord.Interaction):
-    role = interaction.guild.get_role(1178726280959635616)
-    if role:
-      if role in interaction.user.roles:
-        await interaction.response.send_message("Pinging the kittens...",ephemeral=True,delete_after=3)
-        await interaction.channel.send(f"**{interaction.user.mention} Pinged <@&1139862719726624768>! :smile:**")
-      else:
-        await interaction.response.send_message(f"You didn't buy this feature yet.\nSave up <:coins:1172819933093179443> ` 400 Coins ` and get it in the <#{config.SHOP_CHANNEL}>!",ephemeral=True)
+    item = db.items.get(interaction.user.id,1002)
+    if item == 0:
+      await interaction.response.send_message(f"You didn't buy this feature yet.\nSave up <:coins:1172819933093179443> ` 400 Coins ` and get it in the <#{config.SHOP_CHANNEL}>!",ephemeral=True)
     else:
-      await interaction.response.send_message("Role not found")
+      await interaction.response.send_message("Pinging the kittens...",ephemeral=True,delete_after=3)
+      await interaction.channel.send(f"**{interaction.user.mention} Pinged <@&1139862719726624768>! :smile:**")
 
   @app_commands.command(name = "lootbox",description = "BETA | Take a risky action in hope of getting coins and items!")
   async def lootbox(self, interaction: discord.Interaction):
-    if interaction.user.id not in config.ADMIN:
-      if not interaction.user.premium_since:
+    if interaction.user.guild_permissions.administrator or interaction.user.premium_since:
+      await interaction.response.send_message("You must be a Server Booster to use BETA features.",ephemeral=True)
+    else:
+      user_balance = db.get('economy', 'coins', interaction.user.id)
+      if user_balance < 5:
+        await interaction.response.send_message("You're too poor to open a lootbox. Save up at least <:coins:1172819933093179443> ` 5 Coins ` to get started.",ephemeral=True)
         return
-    user_balance = db.get('economy', 'coins', interaction.user.id)
-    if user_balance < 5:
-      await interaction.response.send_message("You're too poor to open a lootbox. Save up at least <:coins:1172819933093179443> ` 5 Coins ` to get started.",ephemeral=True)
-      return
-    embed = discord.Embed(description="**How it works**\nYou can open lootboxes for how long you want, the first lootbox costs <:coins:1172819933093179443> ` 5 Coins ` and its price will graudually increase.\nYou can get more coins, items, and even rare items!\n\n**But there's a catch:** There is a small chance that you will loose all your opened lootboxes and the coins you spent on them.\n\n**Are you ready?**")
-    embed.set_author(name='Lootbox chain!',icon_url='https://cdn-icons-png.flaticon.com/512/8580/8580823.png'	)
-    embed.set_thumbnail(url='https://cdn-icons-png.flaticon.com/512/8832/8832614.png')
-    await interaction.response.send_message(embed=embed,view=LootboxUI())
+      embed = discord.Embed(description="**How it works**\nYou can open lootboxes for how long you want, the first lootbox costs <:coins:1172819933093179443> ` 5 Coins ` and its price will graudually increase.\nYou can get more coins, items, and even rare items!\n\n**But there's a catch:** There is a small chance that you will loose all your opened lootboxes and the coins you spent on them.\n\n**Are you ready?**")
+      embed.set_author(name='Lootbox chain!',icon_url='https://cdn-icons-png.flaticon.com/512/8580/8580823.png'	)
+      embed.set_thumbnail(url='https://cdn-icons-png.flaticon.com/512/8832/8832614.png')
+      await interaction.response.send_message(embed=embed,view=LootboxUI())
 
   @app_commands.command(name="slot_machine",description = "BETA | Take a risky action in hope of getting coins and boosts!")
   async def slots(self,interaction: discord.Interaction):

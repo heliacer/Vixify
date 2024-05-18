@@ -82,13 +82,13 @@ class Economy(Plugin):
     
     user_balance = db.get("economy","coins",user.id)
     member_balance = db.get("economy","coins",member.id)
-    member_padlock = db.items.get(member.id,1001)
+    member_padlock = db.items.get(member.id,2001)
 
     if member_padlock != 0:
       embed = discord.Embed(description=f"**<:padlock:1178730730998734980> {member.name} had a padlock.**")
       dm = discord.Embed(description=f"**{user.mention} tried to steal from you.**",color = 0x2b2d31)
       if winchance(20):
-        db.items.decrease(member.id,1001,1)
+        db.items.decrease(member.id,2001,1)
         embed.description += f"\n**You managed to break the padlock**"
         dm.description += f"\n**Unfortunately, {user.mention} managed to break your padlock, without any lockpick.**"
         if winchance(50):
@@ -197,7 +197,6 @@ class Economy(Plugin):
   @app_commands.command(name="inventory",description="View owned items & features")
   async def inventory(self,interaction:discord.Interaction,member:discord.Member=None):
     user = member or interaction.user
-    print(user.premium_since)
     if user.premium_since or user == interaction.user or user.guild_permissions.administrator:
       embed = discord.Embed()
       embed.set_author(name=f"{user.display_name}'s Inventory",icon_url=user.avatar.url)

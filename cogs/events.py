@@ -2,7 +2,7 @@ import discord
 import config
 import db
 from discord.ext import commands
-from core.predicate import admin, isauthor
+from core.predicate import isauthor
 from core.helpers import messages, warnings, has_penalty, ranks
 from core.helpers import broadcast, calc_cooldown, calc_message, stripCodeBlocks
 import datetime
@@ -52,7 +52,7 @@ class Events(Plugin):
         super().__init__(bot=bot)
   
     @commands.command(name='clearheat')
-    @admin()
+    @commands.has_permissions(administrator=True)
     async def clearheat(self, ctx: commands.Context, member: discord.Member):
         messages[member.id] = []
         warnings[member.id] = []

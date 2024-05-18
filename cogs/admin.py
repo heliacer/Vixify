@@ -4,12 +4,11 @@ import db
 import os
 import config
 from core.plugins import Plugin
-from core.predicate import admin
 
 
 class Admin(Plugin):
   @commands.command()
-  @admin()
+  @commands.has_permissions(administrator=True)
   async def init(self, ctx,syntax: str = None):
     if not os.path.exists('vix.db') or syntax =="-f":
       guild = self.bot.get_guild(config.GUILD)
@@ -19,13 +18,13 @@ class Admin(Plugin):
       await ctx.send(f"**<:err:1203262608929722480> Database already exists. Use -f syntax to forcefully overwrite data.**", delete_after=10)
 
   @commands.command()
-  @admin()
+  @commands.has_permissions(administrator=True)
   async def status(self, ctx, status):
     await self.bot.change_presence(activity = discord.Activity(type = discord.ActivityType.custom,name = " ",state = status.replace("_"," ")))
     await ctx.send(f"**<:confirm:1175396326272409670> Task executed.**", delete_after=10)
 
   @commands.command()
-  @admin()
+  @commands.has_permissions(administrator=True)
   async def set(self, ctx, table, value, member: discord.Member, *, data):
     tryjson = data[1:-1]
     if tryjson.startswith("{"):
@@ -38,7 +37,7 @@ class Admin(Plugin):
     await ctx.send(message, delete_after=10)
 
   @commands.command()
-  @admin()
+  @commands.has_permissions(administrator=True)
   async def get(self, ctx, table, value=None, member: discord.Member = None):
     user_id = None
     if member:
@@ -53,7 +52,7 @@ class Admin(Plugin):
     await ctx.send(message, delete_after=20)
 
   @commands.group()
-  @admin()
+  @commands.has_permissions(administrator=True)
   async def items(self, ctx: commands.Context):
       if ctx.invoked_subcommand is None:
           await ctx.send("**<:questionable:1175393148294414347> Item task does not exist.**", delete_after=10)

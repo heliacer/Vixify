@@ -1,18 +1,15 @@
 import discord
 import db
 import random
-import io
-import json
 from discord import app_commands
 from discord.ext import commands
-from core.helpers import loadbarimage, getItemByID
+from core.helpers import loadbarimage, getItemByID, winchance
 from core.plugins import Plugin
 
 class Economy(Plugin):
   def __init__(self, bot):
     self.bot = bot
     super().__init__(bot=bot)
-
 
   @commands.hybrid_command(name= "bank", description = 'The Vixify Bank gross value')
   async def bank(self,ctx):
@@ -79,40 +76,42 @@ class Economy(Plugin):
       await ctx.send(embed=embed)
       return
     
-    user_balance = db.get("economy","coins",user.id)
-    member_balance = db.get("economy","coins",member.id)
-    padlocks = db.items.get(member.id,1001)
-    print(padlocks)
-    # TODO : redo this whole item get part
-
-    '''
-
-    if json_data != 0:
-      json_data = json.loads(json_data)
-      if json_data['1001']:
-        if json_data['1001'] > 0:
-          json_data['1001'] -= 1
-          db.put("items","json_data", member.id,json.dumps(json_data))
-          if user_balance < 20:
-            db.put("economy","coins",user.id,0)
-            embed = discord.Embed(description=f"**<:padlock:1178730730998734980> {member.name} had a padlock. you lost ALL your coins**")
-          else:
-            db.put("economy","coins",user.id,round(user_balance-user_balance*0.5))
-            embed2 = discord.Embed(description=f"While you had a padlock, {user.display_name} tried stealing from you and litteraly lost half of his Coins. You monster.",color = 0x2b2d31)
-            embed = discord.Embed(description=f"**<:padlock:1178730730998734980> {member.name} had a padlock. dammn bro you lost half of your coins**")
-          await ctx.send(embed=embed)
-          await member.send(embed=embed2) if member.dm_channel else None
-          return
-    '''
-
     if user_balance == 0:
         await ctx.send("You don't have any Coins left.", ephemeral=True, delete_after=10)
         return
+    
+    user_balance = db.get("economy","coins",user.id)
+    member_balance = db.get("economy","coins",member.id)
+    member_padlock = db.items.get(member.id,1001)
+
+    if member_padlock != 0:
+      embed = discord.Embed(description=f"**<:padlock:1178730730998734980> {member.name} had a padlock.**")
+      dm = discord.Embed(description=f"**{user.mention} tried to steal from you.**",color = 0x2b2d31)
+      if winchance(20):
+        db.items.decrease(member.id,1001,1)
+        embed.description += f"\n**You managed to break the padlock**"
+        dm.description += f"\n**Unfortunately, {user.mention} managed to break your padlock, without any lockpick.**"
+        if winchance(50):
+          padlock_stolen = min(1,round(member_balance*0.05))
+          db.exchange(user.id,member.id,padlock_stolen)
+          embed.description += f"\n**and stole a small amount of ` {padlock_stolen} Coins `.**"
+          dm.description += f"\n**A small amount of your coins were stolen.**"
+        else:
+          embed.description += f"\n**,and got away with zero coins.**"
+          dm.description += f"\n**None of your coins were stolen.**"
+      else:
+        db.exchange(self.bot.user.id,user.id,round(user_balance*0.3))
+        embed.description += f"\n**You lost a lot of coins. Better luck next time.**"
+        dm.description += f"\n**Luckily, {user.mention} failed to break the padlock.**"
+      await ctx.send(embed=embed)
+      await member.send(embed=dm) if member.dm_channel else None
+      return
+
     elif member_balance == 0:
         await ctx.send(f"{member.mention} doesn't have any Coins.", ephemeral=True, delete_after=10)
         return
     
-    success = random.choice([True,True, False])
+    success = winchance(65)
 
     if success:
       steal_amount = round(member_balance*0.1)
@@ -198,29 +197,15 @@ class Economy(Plugin):
   @app_commands.command(name="inventory",description="View owned items & features")
   async def inventory(self,interaction:discord.Interaction,member:discord.Member=None):
     user = member or interaction.user
-    if user.premium_since != None or user == interaction.user:
-      await interaction.response.send_message(db.items.get(user.id)) 
-      # TODO : redo item get part
-      '''
-      #redo this item get part use db.items
-      json_data = db.get("items","json_data",user.id)
-      if json_data != 0:
-        json_data = json.loads(json_data)
-        listing = []
-        for key, value in json_data.items():
-          if json_data[key] != 0:
-            listing.append(f'**{json_data[key]}x {getItemByID(value)}**')
-            value = '\n'.join(item for item in listing)
-        if not listing:
-          value = "No items left, lol."
-      else:
-        value = "No Items here, lol."
-      embed = discord.Embed(description=value)
-      embed.set_author(name=f"{user.name}'s Inventory",icon_url=user.avatar.url)
-      await interaction.response.send_message(embed=embed,ephemeral=True)
-      '''
+    print(user.premium_since)
+    if user.premium_since or user == interaction.user or user.guild_permissions.administrator:
+      embed = discord.Embed()
+      embed.set_author(name=f"{user.display_name}'s Inventory",icon_url=user.avatar.url)
+      items = db.items.get(user.id)
+      for item in items:
+        embed.description += f"**{item[1]}x {getItemByID(item[0])['name']}**\n"
     else:
-      await interaction.response.send_message("You need to be a Server Booster to be able to view other's inventory.",ephemeral=True)
+      await interaction.response.send_message("**<:level:1172820830812643389> viewing other's inventory requires you to be a booster of this server.**",ephemeral=True)
   
 async def setup(bot):
   await bot.add_cog(Economy(bot))

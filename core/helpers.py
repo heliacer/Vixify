@@ -12,7 +12,6 @@ ranks = json.load(open("assets/ranks.json")).items()
 messages = {}
 warnings = {}
 has_penalty = {}
-typing_duration = {}
 
 def calc_message(user_messages):
     heat = 0
@@ -69,3 +68,22 @@ def getItemByID(id: int):
   for item in CONTENT:
     if item["id"] == id:
       return item
+    
+def nextItemPrice(user: discord.Member,items:str,sale:int):
+    user_roles: list = [role.id for role in user.roles]
+    sorted_features: list = sorted(items, key=lambda item: item["price"])
+    next_item: dict = next((item for item in sorted_features if item["id"] not in user_roles), None)
+    return next_item["price"] * sale if next_item else 0
+
+
+def PropertyByItemID(id,property,items: str):
+  for item in items:
+    if item["id"] == id:
+      return item[property]
+    
+
+def stripCodeBlocks(content: str):
+  while "```" in content:
+    start = content.find("```")
+    end = content.find("```", start + 3)
+    content = content[:start] + content[end + 3:]

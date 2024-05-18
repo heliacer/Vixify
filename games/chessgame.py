@@ -1,7 +1,7 @@
 import chess
 import discord
 from PIL import Image
-from db import GameCheckoutGUI
+from core.ui import GameCheckoutGUI
 from typing import Union
 import asyncio
 import io

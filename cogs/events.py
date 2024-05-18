@@ -2,20 +2,14 @@ import discord
 import config
 import db
 from discord.ext import commands
-from core.predicate import has_admin, is_author
-from core.helpers import broadcast, messages, warnings, has_penalty, calc_cooldown, calc_message, typing_duration, ranks
+from core.predicate import admin, isauthor
+from core.helpers import messages, warnings, has_penalty, ranks
+from core.helpers import broadcast, calc_cooldown, calc_message, stripCodeBlocks
 import datetime
 from discord import app_commands
 import traceback
 from core.plugins import Plugin
 import io
-
-# TODO: this needs some serious refactoring and cleanup - it's a mess
-
-# TODO: make a type listener which will bypass heat addition after typing for a certain amount of time ( 20 seconds )
-
-
-
 
 class ConfirmDeclineButtons(discord.ui.View):
   def __init__(self,original_message: discord.Message):
@@ -57,10 +51,8 @@ class Events(Plugin):
         self.bot = bot
         super().__init__(bot=bot)
   
-
-
     @commands.command(name='clearheat')
-    @has_admin()
+    @admin()
     async def clearheat(self, ctx: commands.Context, member: discord.Member):
         messages[member.id] = []
         warnings[member.id] = []
@@ -73,8 +65,6 @@ class Events(Plugin):
       msg = await ctx.send('Pong!')
       await msg.edit(content='Pong! ``{0}ms``'.format(round(self.bot.latency, 1))) 
 
-      
-
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
@@ -83,10 +73,7 @@ class Events(Plugin):
             return
 
         # Ignore code blocks
-        while "```" in message.content:
-            start = message.content.find("```")
-            end = message.content.find("```", start + 3)
-            message.content = message.content[:start] + message.content[end + 3:]
+        message.content = stripCodeBlocks(message.content)
 
         # Add heat, calculate stuff
         content_length = len(message.content)
@@ -122,7 +109,7 @@ class Events(Plugin):
                     has_penalty[message.author.id] = True
                     duration = datetime.timedelta(minutes=30)
                     await message.author.timeout(duration)
-                    await message.channel.purge(limit=10, check=lambda msg: is_author(msg, message.author))
+                    await message.channel.purge(limit=10, check=lambda msg: isauthor(msg, message.author))
                     await broadcast(message=message, title='Heavy message spam warning',
                                     content=f"**You exceeded the heat limit, {message.author.mention} ! **\nYou have been timed out for 30 Minutes.\nDon't spam messages in order to get coins.\n*Doing this again could lead to a big coin loss. If you feel like this was an error, click appeal*",
                                     view=AppealButton(channel=self.bot.get_channel(config.MOD_CHANNEL),
@@ -189,8 +176,6 @@ class Events(Plugin):
                     db.exchange(user_id, self.bot.user.id, bank_balance)
                     await message.channel.send(
                         '@everyone :megaphone: The Bank is empty!!! No more coin rewards!!! All items are on 50% Sale go go go buy now !!!')
-                else:
-                    pass
             else:
                 if bank_balance - coins_new < message.guild.member_count * 100 and not bank_balance < message.guild.member_count * 100:
                     await message.channel.send(
@@ -209,7 +194,7 @@ class Events(Plugin):
                 description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again in {error.retry_after:.2f} seconds.***')
             await ctx.send(embed=CooldownEmbed, ephemeral=True)
         elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.reply(f'<:progresschart:1178590023759695952> {error}')
+            await ctx.reply(f'<:progresschart:1178590023759695952> **{error}**')
         elif isinstance(error, (commands.CheckFailure, commands.CommandNotFound)):
             pass
         else:

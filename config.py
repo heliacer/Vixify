@@ -1,10 +1,5 @@
 import os
-dev = True
-
-# os.name != 'posix'
-
-# Linux machine is production server (Raspberry Pi)
-# All other machines are development servers
+dev = os.uname().nodename != 'pihost'
 
 SHOP_CHANNEL = 1215343913121095722 if dev else 1142779979931856896
 MOD_CHANNEL = 1215939069452877924 if dev else 1128038759083032657

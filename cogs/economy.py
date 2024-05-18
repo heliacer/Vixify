@@ -3,7 +3,7 @@ import db
 import random
 from discord import app_commands
 from discord.ext import commands
-from core.helpers import loadbarimage, getItemByID, winchance
+from core.helpers import loadbarimage, getItemByID, winchance, isprivileged
 from core.plugins import Plugin
 
 class Economy(Plugin):
@@ -76,11 +76,12 @@ class Economy(Plugin):
       await ctx.send(embed=embed)
       return
     
+    user_balance = db.get("economy","coins",user.id)
+
     if user_balance == 0:
         await ctx.send("You don't have any Coins left.", ephemeral=True, delete_after=10)
         return
     
-    user_balance = db.get("economy","coins",user.id)
     member_balance = db.get("economy","coins",member.id)
     member_padlock = db.items.get(member.id,2001)
 
@@ -197,12 +198,13 @@ class Economy(Plugin):
   @app_commands.command(name="inventory",description="View owned items & features")
   async def inventory(self,interaction:discord.Interaction,member:discord.Member=None):
     user = member or interaction.user
-    if user.premium_since or user == interaction.user or user.guild_permissions.administrator:
-      embed = discord.Embed()
+    if user == interaction.user or isprivileged(interaction.user): 
+      items = db.items.getall(user.id)
+      embed = discord.Embed(description=f"` {sum(item[1] for item in db.items.getall(user.id))} items `\n\n")
       embed.set_author(name=f"{user.display_name}'s Inventory",icon_url=user.avatar.url)
-      items = db.items.get(user.id)
       for item in items:
         embed.description += f"**{item[1]}x {getItemByID(item[0])['name']}**\n"
+      await interaction.response.send_message(embed=embed,ephemeral=True)
     else:
       await interaction.response.send_message("**<:level:1172820830812643389> viewing other's inventory requires you to be a booster of this server.**",ephemeral=True)
   

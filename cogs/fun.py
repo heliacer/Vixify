@@ -6,7 +6,8 @@ import db
 import config
 import random
 from core.plugins import Plugin
-from core.ui import LootboxUI
+from core.helpers import isprivileged
+from core.ui import LootboxUI, LOOTBOX_PRICE
 
 class Fun(Plugin):
   def __init__(self, bot):
@@ -75,20 +76,20 @@ class Fun(Plugin):
 
   @app_commands.command(name = "lootbox",description = "BETA | Take a risky action in hope of getting coins and items!")
   async def lootbox(self, interaction: discord.Interaction):
-    if interaction.user.guild_permissions.administrator or interaction.user.premium_since:
-      await interaction.response.send_message("You must be a Server Booster to use BETA features.",ephemeral=True)
-    else:
+    if isprivileged(interaction.user):
       user_balance = db.get('economy', 'coins', interaction.user.id)
       if user_balance < 5:
         await interaction.response.send_message("You're too poor to open a lootbox. Save up at least <:coins:1172819933093179443> ` 5 Coins ` to get started.",ephemeral=True)
         return
-      embed = discord.Embed(description="**How it works**\nYou can open lootboxes for how long you want, the first lootbox costs <:coins:1172819933093179443> ` 5 Coins ` and its price will graudually increase.\nYou can get more coins, items, and even rare items!\n\n**But there's a catch:** There is a small chance that you will loose all your opened lootboxes and the coins you spent on them.\n\n**Are you ready?**")
+      embed = discord.Embed(description=f"**How it works**\nYou can open lootboxes for how long you want.\nEach box costs <:coins:1172819933093179443> ` {LOOTBOX_PRICE} Coins `\nYou can get more coins, items, and even rare items!\n\n**But there's a catch:** There is a small chance that you will loose all your opened lootboxes and the coins you spent on them.\n\n**Are you ready?**")
       embed.set_author(name='Lootbox chain!',icon_url='https://cdn-icons-png.flaticon.com/512/8580/8580823.png'	)
       embed.set_thumbnail(url='https://cdn-icons-png.flaticon.com/512/8832/8832614.png')
-      await interaction.response.send_message(embed=embed,view=LootboxUI())
+      await interaction.response.send_message(embed=embed,view=LootboxUI(interaction.user))
+    else:
+      await interaction.response.send_message("You must be a Server Booster to use BETA features.",ephemeral=True)
 
-  @app_commands.command(name="slot_machine",description = "BETA | Take a risky action in hope of getting coins and boosts!")
-  async def slots(self,interaction: discord.Interaction):
+  @app_commands.command(description = "BETA | Take a risky action in hope of getting coins and boosts!")
+  async def slotmachine(self,interaction: discord.Interaction):
     await interaction.response.send_message("This feature is under development, stay tuned!",ephemeral=True)
 
 async def setup(bot):

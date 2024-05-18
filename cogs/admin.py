@@ -9,13 +9,15 @@ from core.plugins import Plugin
 class Admin(Plugin):
   @commands.command()
   @commands.has_permissions(administrator=True)
-  async def init(self, ctx,syntax: str = None):
-    if not os.path.exists('vix.db') or syntax =="-f":
-      guild = self.bot.get_guild(config.GUILD)
-      db.init(guild.member_count * 200,self.bot.user.id)
-      await ctx.send(f"**<:confirm:1175396326272409670> Task executed.**", delete_after=10)
-    else:
-      await ctx.send(f"**<:err:1203262608929722480> Database already exists. Use -f syntax to forcefully overwrite data.**", delete_after=10)
+  async def drop(self, ctx, table):
+    await ctx.send(db.tablehasdata(table))
+
+  @commands.command()
+  @commands.has_permissions(administrator=True)
+  async def init(self, ctx):
+    guild = self.bot.get_guild(config.GUILD)
+    db.init(guild.member_count * 200,self.bot.user.id)
+    await ctx.send(f"**<:confirm:1175396326272409670> Task executed.**", delete_after=10)
 
   @commands.command()
   @commands.has_permissions(administrator=True)

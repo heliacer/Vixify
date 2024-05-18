@@ -58,7 +58,7 @@ def loadbarimage(percentage: int):
     io_bytes.seek(0)
     return io_bytes
 
-def winchance(percentage):
+def winchance(percentage) -> bool:
     return random.random() < percentage / 100
 
 def itemsByType(types: list):
@@ -87,3 +87,11 @@ def stripCodeBlocks(content: str):
     start = content.find("```")
     end = content.find("```", start + 3)
     content = content[:start] + content[end + 3:]
+  return content
+
+def isauthor(message: discord.Message, member: discord.Member):
+    return message.author == member
+
+
+def isprivileged(member: discord.Member):
+    return member.premium_since or member.guild_permissions.administrator or member.guild.owner == member

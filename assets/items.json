@@ -54,7 +54,7 @@
     "price": 380,
     "id": 1001,
     "type" : "command",
-    "stackable" : false
+    "stack" : 1
   },
   {
     "name": "Use /chatrevive",
@@ -62,14 +62,14 @@
     "price": 400,
     "id": 1002,
     "type": "command",
-    "stackable" : false
+    "stack" : 1
   },
   {
     "name": "Padlock",
-    "description": "Stealer go away grr",
+    "description": "Protects your coins",
     "price": 200,
     "id": 2001,
     "type": "utility",
-    "stackable" : false
+    "stack" : 1
   }
 ]

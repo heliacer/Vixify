@@ -6,13 +6,15 @@ import random
 from typing import List  
 from core.helpers import winchance
 
-LOOTBOX_PRICE = 5
+LOOTBOX_PRICE = 10
 
 class LootboxUI(ui.View):
-  def __init__(self,next=True,index=1,total_rewards=[]):
+  def __init__(self,user: discord.Member,next=True,index=1,total_rewards=[]):
     super().__init__()
+    self.user = user
     self.index: int = index
     self.total_rewards: list = total_rewards
+
     if next:
       openButton = ui.Button(label='Open lootbox', emoji='<:checkout:1175007951669436446>', style=discord.ButtonStyle.primary)
       openButton.callback = self.open
@@ -23,6 +25,9 @@ class LootboxUI(ui.View):
       self.add_item(claimButton)
 
   async def open(self, interaction: discord.Interaction):
+    if interaction.user != self.user:
+      await interaction.response.send_message('You are not allowed to open lootboxes for other users!', ephemeral=True)
+      return
     user_balance = db.get('economy', 'coins', interaction.user.id)
     embed1 = discord.Embed(description='<a:loading:1239608763447640114> ***Opening lootbox...***', color=discord.Color.blurple())
     await interaction.response.edit_message(embed=embed1, view=None)
@@ -39,6 +44,7 @@ class LootboxUI(ui.View):
           embed2.description += f'\nAnd you spent all your money! No more lootboxes for you!'
           self.setday(interaction.user.id)
       await interaction.edit_original_response(embed=embed2,view=LootboxUI(
+        user=self.user,
         next=user_balance > LOOTBOX_PRICE,
         index=self.index,
         total_rewards=self.total_rewards
@@ -46,7 +52,7 @@ class LootboxUI(ui.View):
       self.index += 1
     else:
       self.setday(interaction.user.id)
-      embed2.description = f'**You opened a Lootbox and found nothing!**\n\nYou lost all your opened lootboxes and <:coins:1172819933093179443> ` {self.total_spent} Coins `!'
+      embed2.description = f'**You opened a Lootbox and found nothing!**\n\nYou lost all your opened lootboxes and <:coins:1172819933093179443> ` {self.index * LOOTBOX_PRICE} Coins `!'
       embed2.set_thumbnail(url='https://cdn-icons-png.flaticon.com/128/3741/3741593.png')
       await interaction.edit_original_response(embed=embed2, view=None)
 

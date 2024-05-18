@@ -1,6 +1,9 @@
 import sqlite3
 import json
-from typing import Union, List, Dict
+import os
+from typing import List, Tuple
+
+BASE = {'economy':['user_id','coins','rank','xp'],'items':['user_id','json_data']}
 
 conn = sqlite3.connect('vix.db')
 c = conn.cursor()
@@ -12,6 +15,10 @@ conn.commit()
 def init(value: int,id: int):
   c.execute('''INSERT OR IGNORE INTO economy (user_id, coins) VALUES (?, ?);''', (id, value))
   conn.commit()
+
+def tablehasdata(table):
+  c.execute(f'SELECT * FROM {table}')
+  return c.fetchone() != None
 
 def drop(table:str):
   c.execute(f'DROP TABLE {table}')
@@ -55,41 +62,47 @@ def board(value:str, count:int = None):
   return c.fetchall()
 
 class items():
-  def put(user_id :int,item_id: int,amount: int = 0):
-    result = get("items","json_data",user_id)
+  def put(user_id: int, item_id: int, amount: int = 0):
+    result = get("items", "json_data", user_id)
+    data: List[Tuple[int, int]]
     if result == 0:
-      data = {}
+      data = []
+      data.append((item_id, amount))
     else:
       data = json.loads(result)
-    data[item_id] = amount
-    put('items','json_data',user_id,json.dumps(data))
-    
-  def get(user_id: int,item_id: int = None)-> Union[List[Dict[int, int]], int]:
-    result = get('items','json_data',user_id)
+      for i, item in enumerate(data):
+        if item[0] == item_id:
+          data[i] = (item_id, amount)
+          break
+    put('items', 'json_data', user_id, json.dumps(data))
+
+  def get(user_id: int, item_id: int = None):
+    result = get('items', 'json_data', user_id)
     if result != 0:
-      items: list = json.loads(result)
+      items: List[Tuple[int, int]] = json.loads(result)
       if item_id:
         for item in items:
           if item[0] == item_id:
             return int(item[1])
-        return 0
-      return items
-    return []
-  
-  def increase(user_id: int,item_id: int,step: int):
-    amount = items.get(user_id,item_id)
-    amount += step
-    items.put(user_id,items,amount)
+    return 0
 
-  def decrease(user_id: int,item_id: int,step: int):
-    amount = items.get(user_id,item_id)
-    amount -= step
-    items.put(user_id,items,amount)
+  def getall(user_id: int) -> List[Tuple[int, int]]:
+    result = get('items', 'json_data', user_id)
+    if result != 0:
+      return json.loads(result)
+    return []
+
+  def increase(user_id: int, item_id: int, step: int):
+    amount = items.get(user_id, item_id)
+    items.put(user_id, item_id, amount + step)
+
+  def decrease(user_id: int, item_id: int, step: int):
+    amount = items.get(user_id, item_id)
+    items.put(user_id, item_id, amount - step)
 
 def load(data: dict):
-  base = {'economy':['user_id','coins','rank','xp'],'items':['user_id','json_data']}
   for table in data:
     for item in data[table]:
       for value in item[1:]:
-        put(table, base[table][item.index(value)],item[0],value)
+        put(table, BASE[table][item.index(value)],item[0],value)
 

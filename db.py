@@ -79,7 +79,7 @@ def tablehasdata(table):
   c.execute(f'SELECT * FROM {table}')
   return c.fetchone() != None
 
-def truncate(table:str):
+def deletedata(table:str):
   '''
   Delete all data from a table
   '''

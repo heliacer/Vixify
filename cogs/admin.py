@@ -13,7 +13,7 @@ class Admin(Plugin):
   @commands.has_permissions(administrator=True)
   async def cleartable(self, ctx, table, syntax=None):
     if not db.tablehasdata(table) or syntax == "force":
-      db.truncate(table)
+      db.deletedata(table)
       message = CONFIRM_MESSAGE
     else:
       message = f"**<:remove:1175005705422512218> Table has data. Use `force` to clear table.**"

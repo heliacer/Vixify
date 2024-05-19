@@ -6,9 +6,9 @@ from PIL import ImageDraw, Image, ImageFont
 import io
 import json
 
-CONTENT = json.load(open("assets/items.json"))
 THRESHOLD = 30
-ranks = json.load(open("assets/ranks.json")).items()
+
+ranks = json.load(open("assets/ranks.json")).items() # TODO make a ranks class to handle this
 messages = {}
 warnings = {}
 has_penalty = {}
@@ -44,7 +44,7 @@ async def broadcast(message: discord.Message,content,title=None,view=None,thumb_
     print(e)
     await message.channel.send(embed=embed,view=view)
 
-def loadbarimage(percentage: int):
+def loadbarimage(percentage: int) -> io.BytesIO:
     width, height = 400, 400
     image = Image.new("RGBA", (width, height), (255, 0, 0, 0))
     draw = ImageDraw.Draw(image) 
@@ -61,37 +61,18 @@ def loadbarimage(percentage: int):
 def winchance(percentage) -> bool:
     return random.random() < percentage / 100
 
-def itemsByType(types: list):
-  return [item for item in CONTENT if item["type"] in types]
-
-def getItemByID(id: int):
-  for item in CONTENT:
-    if item["id"] == id:
-      return item
-    
-def nextItemPrice(user: discord.Member,items:str,sale:int):
-    user_roles: list = [role.id for role in user.roles]
-    sorted_features: list = sorted(items, key=lambda item: item["price"])
-    next_item: dict = next((item for item in sorted_features if item["id"] not in user_roles), None)
-    return next_item["price"] * sale if next_item else 0
-
-
-def PropertyByItemID(id,property,items: str):
-  for item in items:
-    if item["id"] == id:
-      return item[property]
-    
-
-def stripCodeBlocks(content: str):
+def stripCodeBlocks(content: str) -> str:
   while "```" in content:
     start = content.find("```")
     end = content.find("```", start + 3)
     content = content[:start] + content[end + 3:]
   return content
 
-def isauthor(message: discord.Message, member: discord.Member):
+def isauthor(message: discord.Message, member: discord.Member) -> bool:
     return message.author == member
 
-
-def isprivileged(member: discord.Member):
-    return member.premium_since or member.guild_permissions.administrator or member.guild.owner == member
+def isprivileged(member: discord.Member) -> bool:
+  '''
+  Check if a member is privileged (is a booster, is an admin, or is the owner of the guild)
+  '''
+  return member.premium_since or member.guild_permissions.administrator or member.guild.owner == member

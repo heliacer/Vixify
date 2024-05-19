@@ -92,7 +92,7 @@ class SubmitUCIMove(ui.Modal,title='Chess Move'):
         await interaction.response.send_message(f'` {move[:2]} ` to ` {move[2:]} ` is a Illegal move. Try again.',ephemeral=True)
 
 class ChessGameUI(ui.View):
-  def __init__(self,board:chess.Board,players,current_player,color):
+  def __init__(self,board:chess.Board,players:list,current_player,color):
     super().__init__(timeout=None)
     self.board = board
     self.players = players
@@ -114,7 +114,8 @@ class ChessGameUI(ui.View):
   @ui.button(label='Give Up',emoji='<:sandclock:1203261564291911680>')
   async def giveup(self,interaction: discord.Interaction,button):
     next_player = self.players[(self.players.index(self.current_player) + 1) % len(self.players)]
-    embed = discord.Embed(description=f'**{interaction.user.mention} gave up, hat a shame.**\n**Total moves:** ` {len(self.board.move_stack)} `\n<@{next_player[0]}> wins all the coins.')
+    winner = self.current_player if interaction.user.id != self.current_player[0] else next_player
+    embed = discord.Embed(description=f'**{interaction.user.mention} gave up, hat a shame.**\n**Total moves:** ` {len(self.board.move_stack)} `\n<@{winner[0]}> wins all the coins.')
     await interaction.response.defer()
     await interaction.delete_original_response()
     win_message = await interaction.channel.send(embed=embed,view=GameCheckoutGUI(self.players,[next_player],10))
@@ -126,6 +127,7 @@ class ChessGameUI(ui.View):
         break
     delayed = GameCheckoutGUI(self.players, [next_player],0)
     await delayed.payout(message=win_message)
+    
 @staticmethod
 def get_binary_board(board) -> discord.File:
     size = (500, 500)

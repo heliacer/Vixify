@@ -2,8 +2,8 @@ import discord
 import config
 import db
 from discord.ext import commands
-from core.helpers import messages, warnings, has_penalty, ranks
-from core.helpers import broadcast, calc_cooldown, calc_message, stripCodeBlocks, isauthor
+from core.misc import messages, warnings, has_penalty, ranks
+from core.misc import broadcast, calc_cooldown, calc_message, stripCodeBlocks, isauthor
 import datetime
 from discord import app_commands
 import traceback
@@ -101,7 +101,7 @@ class Events(Plugin):
                     duration = datetime.timedelta(hours=1)
                     await message.author.timeout(duration)
                     db.exchange(self.bot.user.id, message.author.id,
-                                db.get('economy', 'coins', message.author.id) // 2)
+                                db.fetch('economy', 'coins', message.author.id) // 2)
                     await broadcast(message=message, title='Heavy message spam punishment',
                                     content=f"**Now you've done it, {message.author.mention}. Half your coins. Gone.**\n\nThis happened due to you breaking an important rule twice. Do not spam messages in order to get coins. You have been timed out for an hour.\n*Your XP and your Level remain the same. Create a ticket <#{config.TICKET_CHANNEL}> for further questions.*")
                 else:
@@ -141,9 +141,9 @@ class Events(Plugin):
             coins_new = content_length // 8
         xp_new = content_length // 4
         user_id = message.author.id
-        user_rank = db.get("economy", "rank", user_id)
-        user_xp = db.get("economy", "xp", user_id)
-        bank_balance = db.get('economy', 'coins', self.bot.user.id)
+        user_rank = db.fetch("economy", "rank", user_id)
+        user_xp = db.fetch("economy", "xp", user_id)
+        bank_balance = db.fetch('economy', 'coins', self.bot.user.id)
         rank_new = 0
         if user_rank != 0:
             if user_xp + xp_new >= (user_rank) * 120:
@@ -168,8 +168,8 @@ class Events(Plugin):
                     f"**:tada: Congrats {message.author.mention}, You just reached <:level:1172820830812643389> `` Rank {user_rank + rank_new} `` !\n\nTIP:** *You can exchange coins earned by chatting in <#{config.SHOP_CHANNEL}>.\nEnjoy your stay!*")
                 user_xp = 0
                 xp_new = xp_new - 15
-        db.put("economy", "rank", user_id, user_rank + rank_new)
-        db.put("economy", "xp", user_id, xp_new + user_xp)
+        db.store("economy", "rank", user_id, user_rank + rank_new)
+        db.store("economy", "xp", user_id, xp_new + user_xp)
         if bank_balance < coins_new:
             if not bank_balance == 0:
                 db.exchange(user_id, self.bot.user.id, bank_balance)
@@ -183,27 +183,29 @@ class Events(Plugin):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        current = db.get("economy", "coins", self.bot.user.id)
+        current = db.fetch("economy", "coins", self.bot.user.id)
         set("economy", "coins", self.bot.user.id, current + 500)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
+        if isinstance(error, (commands.CheckFailure, commands.CommandNotFound)):
+            return
         if isinstance(error, commands.CommandOnCooldown):
             embed = discord.Embed(description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again in {error.retry_after:.2f} seconds.***')
             await ctx.send(embed=embed, ephemeral=True)
-        elif isinstance(error, (commands.MissingRequiredArgument,commands.MemberNotFound,commands.BadArgument)):
+        elif isinstance(error, (commands.MissingRequiredArgument, commands.MemberNotFound, commands.BadArgument, commands.MissingPermissions, commands.BotMissingPermissions)):
             embed = discord.Embed(description=f'**<:err:1203262608929722480> {error}**')
             await ctx.send(embed=embed)
-        elif isinstance(error, (commands.CheckFailure, commands.CommandNotFound)):
-            pass
-        else:
-            traceback.print_exception(error)
-            exception = traceback.format_exception(error)
+        elif isinstance(error, commands.CommandError):
+            embed = discord.Embed(description=f'**<:err:1203262608929722480> {error}**')
+            await ctx.send(embed=embed)
+        else: # Unhandled error, not related to the command
+            exception = traceback.format_exception(type(error), error, error.__traceback__)
             file = discord.File(filename="error.log", fp=io.BytesIO(''.join(exception).encode()))
-            ErrorEmbed = discord.Embed(
-                description=f'***<:err:1203262608929722480> There was an unhandled Internal Error. Please try again later.***')
-            ErrorEmbed.set_footer(text=error)
+            ErrorEmbed = discord.Embed(description=f'**<:err:1203262608929722480> There was an internal error.**')
+            ErrorEmbed.set_footer(text=str(error))
             await ctx.send(embed=ErrorEmbed, file=file)
+
 
     @commands.Cog.listener()
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):

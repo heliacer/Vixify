@@ -53,16 +53,14 @@
     "description": "Silly command for silly people",
     "price": 380,
     "id": 1001,
-    "type" : "command",
-    "stack" : 1
+    "type" : "command"
   },
   {
     "name": "Use /chatrevive",
     "description": "Wake up a dead chat",
     "price": 400,
     "id": 1002,
-    "type": "command",
-    "stack" : 1
+    "type": "command"
   },
   {
     "name": "Padlock",
@@ -70,6 +68,24 @@
     "price": 200,
     "id": 2001,
     "type": "utility",
-    "stack" : 1
+    "ownstack" : 0
+  },
+  {
+    "name": "Lockpick",
+    "description": "Break into a locked wallet",
+    "price": 200,
+    "id": 2002,
+    "type": "utility",
+    "ownstack" : 0
+  },
+  {
+    "name": "Golden Padlock",
+    "description": "Rich people's padlock",
+    "price": 800,
+    "id": 2010,
+    "type": "utility",
+    "ownstack" : 0,
+    "rarity" : 3,
+    "buyable" : false
   }
 ]

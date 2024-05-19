@@ -6,7 +6,7 @@ import db
 import config
 import random
 from core.plugins import Plugin
-from core.helpers import isprivileged
+from core.misc import isprivileged
 from core.ui import LootboxUI, LOOTBOX_PRICE
 
 class Fun(Plugin):
@@ -41,7 +41,7 @@ class Fun(Plugin):
   @app_commands.describe(mode='Choose whether you want a Public or Private session. Public by default.')
   @app_commands.describe(bet='The amount you choose to bet. You can change this later.')
   async def casino(self, interaction: discord.Interaction, mode: app_commands.Choice[str] = None,bet: int = None):
-    host_balance = db.get('economy','coins',interaction.user.id)
+    host_balance = db.fetch('economy','coins',interaction.user.id)
     if host_balance < 50:
       await interaction.response.send_message("You're too poor to take a step into the casino luxury. Save up at least <:coins:1172819933093179443>` 50 Coins ` to get started.",ephemeral=True)
       return
@@ -77,7 +77,7 @@ class Fun(Plugin):
   @app_commands.command(name = "lootbox",description = "BETA | Take a risky action in hope of getting coins and items!")
   async def lootbox(self, interaction: discord.Interaction):
     if isprivileged(interaction.user):
-      user_balance = db.get('economy', 'coins', interaction.user.id)
+      user_balance = db.fetch('economy', 'coins', interaction.user.id)
       if user_balance < 5:
         await interaction.response.send_message("You're too poor to open a lootbox. Save up at least <:coins:1172819933093179443> ` 5 Coins ` to get started.",ephemeral=True)
         return

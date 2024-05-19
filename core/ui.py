@@ -1,19 +1,25 @@
 import discord
 from discord import ui
+from datetime import datetime
 import asyncio
 import db
 import random
 from typing import List  
-from core.helpers import winchance
+from core.misc import winchance
+from core.items import getRandomItemByRarity,getItems,getItemByID,Item
 
-LOOTBOX_PRICE = 10
+LOOTBOX_PRICE = 50
 
 class LootboxUI(ui.View):
-  def __init__(self,user: discord.Member,next=True,index=1,total_rewards=[]):
+  def __init__(self,user: discord.Member,next: bool=True,index: int=1,total_rewards: List[Item]=[]):
     super().__init__()
     self.user = user
-    self.index: int = index
-    self.total_rewards: list = total_rewards
+    self.index = index
+    self.total_rewards = total_rewards
+    
+    # list of items which only can be owned once that the user owns
+    owned = set(item[0] for item in db.items.getall(user.id) if getItemByID(item[0]).ownstack == 1)
+    self.query = [item for item in getItems() if item.id not in owned]
 
     if next:
       openButton = ui.Button(label='Open lootbox', emoji='<:checkout:1175007951669436446>', style=discord.ButtonStyle.primary)
@@ -25,44 +31,55 @@ class LootboxUI(ui.View):
       self.add_item(claimButton)
 
   async def open(self, interaction: discord.Interaction):
+    if self.index == 1:
+      self.setday(interaction.user.id)
     if interaction.user != self.user:
       await interaction.response.send_message('You are not allowed to open lootboxes for other users!', ephemeral=True)
       return
-    user_balance = db.get('economy', 'coins', interaction.user.id)
+    user_balance = db.fetch('economy', 'coins', interaction.user.id)
     embed1 = discord.Embed(description='<a:loading:1239608763447640114> ***Opening lootbox...***', color=discord.Color.blurple())
     await interaction.response.edit_message(embed=embed1, view=None)
     await asyncio.sleep(1)
     embed2 = discord.Embed()
     db.exchange(interaction.client.user.id,interaction.user.id,LOOTBOX_PRICE)
     if winchance(80):
-      rewards = ['undefined', 'still need to implement this part', 'but you get the idea']
-      
-      self.total_rewards.extend(rewards)
-      embed2.description = "**You opened a lootbox and found:**\n- {}".format('\n- '.join(rewards))
+      reward = getRandomItemByRarity(3,self.query)
+      self.total_rewards.append(reward)
+      embed2.description = f"**You opened a lootbox and found {reward.name}!**\n\n*Type:* ` {reward.type} ` *Rarity:* ` {reward.rarity} ` *Value:* <:coins:1172819933093179443> ` {reward.price} Coins `"
       embed2.set_thumbnail(url='https://cdn-icons-png.flaticon.com/128/7839/7839136.png')
       if user_balance < LOOTBOX_PRICE :
           embed2.description += f'\nAnd you spent all your money! No more lootboxes for you!'
-          self.setday(interaction.user.id)
       await interaction.edit_original_response(embed=embed2,view=LootboxUI(
         user=self.user,
         next=user_balance > LOOTBOX_PRICE,
-        index=self.index,
+        index=self.index + 1,
         total_rewards=self.total_rewards
         ))
-      self.index += 1
     else:
-      self.setday(interaction.user.id)
       embed2.description = f'**You opened a Lootbox and found nothing!**\n\nYou lost all your opened lootboxes and <:coins:1172819933093179443> ` {self.index * LOOTBOX_PRICE} Coins `!'
       embed2.set_thumbnail(url='https://cdn-icons-png.flaticon.com/128/3741/3741593.png')
+      self.reset()
       await interaction.edit_original_response(embed=embed2, view=None)
 
-  def claim(self, interaction: discord.Interaction):
-    # TODO : implement claiming lootbox rewards
-    pass
+  async def claim(self, interaction: discord.Interaction):
+    # TODO : add roles correctly
+    for reward in self.total_rewards:
+      if reward.type == 'role':
+        await interaction.user.add_roles(reward.id)
+      else:
+        db.items.increase(interaction.user.id,reward.id)
+    rewardtable = '\n'.join([reward.name for reward in self.total_rewards])
+    embed = discord.Embed(description=f'Claimed all rewards!\n{rewardtable}')
+    self.reset()
+    await interaction.response.edit_message(embed=embed, view=None)
 
   def setday(self, user_id: int):
-    pass
-    # TODO : implement daily lootbox limit
+    timestamp = int(datetime.now().timestamp())
+    db.events.put(user_id, 101,timestamp)
+
+  def reset(self):
+    self.index = 1
+    self.total_rewards = []
 
 class GameCheckoutGUI(discord.ui.View):
   def __init__(self,players: list,winners: List[List[int]],seconds):
@@ -91,3 +108,7 @@ class GameCheckoutGUI(discord.ui.View):
       print(message)
       await message.delete()
       await message.channel.send(embed=embed)
+
+
+class SlotMachineUI():
+  pass

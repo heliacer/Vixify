@@ -5,7 +5,8 @@ from discord import ui
 from collections import defaultdict
 from discord.ext import commands
 from core.plugins import Plugin
-from core.helpers import itemsByType, nextItemPrice, PropertyByItemID
+from typing import List
+from core.items import getItemsByType,getItemByID,getNextItemPrice
 
 EMOJIS = {
   "roles" : "<:features:1178989659976642581>",
@@ -13,56 +14,62 @@ EMOJIS = {
   "utilities" : "<:dimension:1178990567812771890>"
 }
 
-ITEMS = {
-  "roles": itemsByType(["role"]), # returns a list of items [{},{},{}] by type
-  "commands": itemsByType(["command"]),
-  "utilities": itemsByType(["utility"])
+CONTENT = {
+  "roles": [item for item in getItemsByType(["role"]) if item.buyable], 
+  "commands": [item for item in getItemsByType(["command"]) if item.buyable],
+  "utilities": [item for item in getItemsByType(["utility"]) if item.buyable],
 }
     
-async def loadpage(interaction: discord.Interaction,page:int,balance:int,sale_percent: int,section: str,selection: list = None,price: int = None):
+async def loadpage(interaction: discord.Interaction,page: int,balance: int,sale_percent: int,section: str,selection: List[int] = None,price: int = None):
   embeds = []
   price = price or 0
-  display = ITEMS[section][6*(page-1):6*page]
+  itemDisplay = CONTENT[section][6*(page-1):6*page]
   left = True if page == 1 else False
 
+  # Display the selected items
   selection_counts = defaultdict(int)
   if selection:
       for item_id in selection:
-          itemname = PropertyByItemID(item_id, "name", ITEMS[section])
+          itemname = getItemByID(item_id, CONTENT[section]).name
           selection_counts[itemname] += 1
       selection_lines = [f'{count}x {name}' for name, count in selection_counts.items()]
       selectionvalue = '\n'.join(selection_lines)
   else:
       selectionvalue = "*No items selected*"
 
+  # Check if there are any items left to display
   try:
-    right = not bool(ITEMS[section][page * 6])
+    right = not bool(CONTENT[section][page * 6])
   except IndexError:
     right = True
+
+  # Create the embed, add Title
   page_embed = discord.Embed(title=f"{EMOJIS[section]} {section.capitalize()}",description="")
   user_roles = [role.id for role in interaction.user.roles]
 
-  for feature in display:
-    if feature["id"] in user_roles:
-      balance_format = f"<:badge:1178949476308766771> `` Owned ``" 
-    elif int(feature["price"] * sale_percent) <= balance:
-      balance_format = f"<:coins:1172819933093179443> `` {int(feature['price'] * sale_percent)} Coins ``" 
-    elif int(feature["price"] *sale_percent) > balance:
-      balance_format = f"<:disabledcoins:1178939795288891432> *`` {int(feature['price'] * sale_percent)} Coins ``*" 
-    page_embed.add_field(name=feature["name"],value=f"*{feature['description']}*\n{balance_format}",inline=True)
-  page_embed.set_footer(text=f"Page {page}/{(len(ITEMS[section])+5)//6}")
+  # Add the items of display to the embed
+  for item in itemDisplay:
+    if item.id in user_roles or db.items.get(interaction.user.id,item.id) > 0 if item.ownstack == 1 else False:
+      balance_format = f"<:badge:1178949476308766771> `` Bought ``" 
+    elif item.price * sale_percent <= balance:
+      balance_format = f"<:coins:1172819933093179443> `` {item.price * sale_percent:,.0f} Coins ``" 
+    elif item.price * sale_percent > balance:
+      balance_format = f"<:disabledcoins:1178939795288891432> *`` {item.price* sale_percent:,.0f} Coins ``*" 
+    page_embed.add_field(name=item.name,value=f"*{item.description}*\n{balance_format}",inline=True)
+  page_embed.set_footer(text=f"Page {page}/{(len(CONTENT[section])+5)//6}")
   embeds.append(page_embed)
   transaction_embed = discord.Embed(description="")
 
-  next = nextItemPrice(interaction.user,ITEMS[section],sale_percent)
+  # Check if there are any items left to buy / bank is undercapitalized / user has enough coins
+  next = getNextItemPrice(interaction.user,sale_percent,CONTENT[section])
   if next == 0:
     transaction_embed.add_field(name="<:finishline:1175568414950031471> You've reached the end!",value="**There is nothing left to buy in this section.\nAsk <@955187087911555152> to add more!** ")
   elif next <= balance:
     transaction_embed.add_field(name="<:selection:1172609449593143316> Selected", value=selectionvalue)
-    transaction_embed.add_field(name="<:circular:1172609451023405098> Transaction", value=f"__Current Balance__ : `` {balance} Coins ``\n__Total Price__ : `` {price} Coins ``\n*You'll be left with `` {balance-price} Coins ``*")
+    transaction_embed.add_field(name="<:circular:1172609451023405098> Transaction", value=f"__Current Balance__ : `` {balance:,} Coins ``\n__Total Price__ : `` {price:,} Coins ``\n*You'll be left with `` {balance-price:,} Coins ``*")
     if sale_percent < 1:
       if sale_percent == 0.5:
-        sale_embed = discord.Embed(title='<:flashsale:1200119986568581160> BANK 50% SALE',description='**THE BANK IS INSOLVENT. GO BUY NOW, THE BANK IS RUPT. ALL ITEMS 50% SALE!!**')
+        sale_embed = discord.Embed(title='<:flashsale:1200119986568581160> BANK 50% SALE',description='**THE BANK IS INSOLVENT. GO BUY NOW.\nALL ITEMS ON 50% SALE!!**')
       else:
         sale_embed = discord.Embed(title='<:flashsale:1200119986568581160> BANK 75% SALE',description='**As the Bank is Undercapitalized, Every item is on 75% Sale!\nGo buy now before the Sale goes away!**')
       sale_embed.set_thumbnail(url='https://i.ibb.co/0KxjgjC/box.png')
@@ -72,10 +79,12 @@ async def loadpage(interaction: discord.Interaction,page:int,balance:int,sale_pe
     transaction_embed.title = "<:fireup:1175569234982604870> Aw, not quite yet!" 
   embeds.append(transaction_embed)
 
-  await interaction.edit_original_response(embeds=embeds,view=MainMenu(interaction,page,left,right,balance,selection,section,price,sale_percent))
+  # Send the embeds
+  view= MainMenu(interaction,page,left,right,balance,selection,section,price,sale_percent)
+  await interaction.edit_original_response(embeds=embeds,view=view)
 
 class MainMenu(ui.View):
-  def __init__(self, parent:discord.Interaction, page: int, left_disabled: bool, right_disabled: bool,balance: int,selection: list,section: str,price: int,sale_percent: int):
+  def __init__(self, parent:discord.Interaction, page: int, left_disabled: bool, right_disabled: bool,balance: int,selection: List[int],section: str,price: int,sale_percent: int):
     super().__init__(timeout=None)
     self.parent = parent
     self.page = page
@@ -89,11 +98,11 @@ class MainMenu(ui.View):
     buttoncheckout = ui.Button(emoji="<:checkout:1175007951669436446> ",label="Checkout",custom_id="view.ButtonCheckout",row=1)
     buttonleft = ui.Button(emoji="<:arrowleft:1173619127106142239> ",custom_id="view.ArrowLeft",disabled=left_disabled,row=1)
     buttonright = ui.Button(emoji="<:arrowright:1173619195624308776> ",custom_id="view.ArrowRight",disabled=right_disabled,row=1)
-    items = list(ITEMS[self.section])[6*(page-1):6*page]
+    items = list(CONTENT[self.section])[6*(page-1):6*page]
     user_item_ids = [role.id for role in parent.user.roles]
-    user_item_ids.extend(item[0] for item in db.items.getall(parent.user.id))
-    nonstackable = [id for id in self.selection if len(str(id)) > 4 or  PropertyByItemID(id, "stack", ITEMS[self.section]) == 1]
-    options = [discord.SelectOption(label=item["name"],value=item["id"]) for item in items if int(item["price"]*self.sale_percent) <= balance-price and item["id"] not in nonstackable and item["id"] not in user_item_ids]
+    user_item_ids.extend(item[0] for item in db.items.getall(parent.user.id) if getItemByID(item[0]).ownstack == 1)
+    nonstackable = [id for id in self.selection if getItemByID(id,CONTENT[self.section]).ownstack == 1]
+    options = [discord.SelectOption(label=item.name,value=item.id) for item in items if item.price*self.sale_percent <= balance-price and item.id not in nonstackable and item.id not in user_item_ids]
     menuselect = ui.Select(custom_id="view.MenuSelect", placeholder="Select from Page", min_values=1, max_values=1, options=options,row=0)
     
     buttoncheckout.callback = self.checkout
@@ -120,9 +129,9 @@ class MainMenu(ui.View):
   async def removeitem(self, interaction: discord.Interaction):
     await interaction.response.defer()
     item_id = self.selection[-1]
-    for item in ITEMS[self.section]:
-      if item["id"] == item_id:
-        price = int(item["price"] * self.sale_percent)
+    for item in CONTENT[self.section]:
+      if item.id == item_id:
+        price = int(item.price * self.sale_percent)
     self.selection.remove(item_id)
     await loadpage(self.parent, self.page,self.balance,self.sale_percent,self.section,self.selection,self.price-price)
    
@@ -130,8 +139,8 @@ class MainMenu(ui.View):
     await interaction.response.defer()
     checkout_embed = discord.Embed(title="Are you sure?",description=f"**This action is irreversible.**")
     selection_counts = defaultdict(int)
-    for item in self.selection:
-        name = PropertyByItemID(item, "name",ITEMS[self.section])
+    for item_id in self.selection:
+        name = getItemByID(item_id,CONTENT[self.section]).name
         selection_counts[name] += 1
     selection_lines = [f'{count}x {name}' for name, count in selection_counts.items()]
     selectionvalue = '\n'.join(selection_lines)
@@ -143,8 +152,7 @@ class MainMenu(ui.View):
     await interaction.response.defer()
     item_id = int(interaction.data["values"][0])
     self.selection.append(item_id)
-    package = ITEMS[self.section]
-    price = PropertyByItemID(item_id, "price", package) * self.sale_percent
+    price = getItemByID(item_id,CONTENT[self.section]).price * self.sale_percent
     await loadpage(self.parent, self.page, self.balance,self.sale_percent,self.section,self.selection,self.price+price)
 
 class CheckoutButtons(ui.View):
@@ -177,16 +185,16 @@ class CheckoutButtons(ui.View):
     await loadpage(self.parent,self.page,self.balance,self.sale_percent,self.section,self.selection,self.price)
 
 class SectionSelect(ui.View):
-  def __init__(self,parent):
+  def __init__(self,parent: discord.Interaction):
     super().__init__(timeout=None)
     self.parent = parent
-    self.balance = db.get("economy","coins",parent.user.id)
+    self.balance = db.fetch("economy","coins",parent.user.id)
 
   options = [discord.SelectOption(label=key.capitalize(),value=key,emoji=value) for key, value in EMOJIS.items()]
   @ui.select(custom_id="View.SectionSelect",placeholder="Select a option",min_values=1,max_values=1,options=options,row=0)
   async def selection(self,interaction:discord.Interaction,select: ui.Select):
     await interaction.response.defer()
-    bank_balance = db.get('economy','coins',interaction.client.user.id)
+    bank_balance = db.fetch('economy','coins',interaction.client.user.id)
     sale_percent = 1
     if bank_balance < interaction.guild.member_count * 100:
       sale_percent = 0.75

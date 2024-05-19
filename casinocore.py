@@ -41,7 +41,7 @@ class PlaceBet(discord.ui.Modal, title='Place bet'):
     if bet.isnumeric():
       amount = int(bet)
       if amount in range(50,1500):
-        user_balance = db.get('economy','coins',interaction.user.id)
+        user_balance = db.fetch('economy','coins',interaction.user.id)
         if user_balance >= amount:
           await LobbyPage(self.interaction,self.game,[(x, y) if x != interaction.user.id else (x, amount) for x, y in self.players],self.key)
           await interaction.response.send_message("Your Bet was placed. You can change it by setting your Bet again.",ephemeral=True)
@@ -116,7 +116,7 @@ class LobbyPanel(discord.ui.View):
 
   @discord.ui.button(label='Join',row=1,style=discord.ButtonStyle.blurple)
   async def join_game(self,interaction: discord.Interaction, button: discord.ui.Button):
-    user_balance = db.get('economy','coins',interaction.user.id)
+    user_balance = db.fetch('economy','coins',interaction.user.id)
     if user_balance < 50:
       await interaction.response.send_message("You're too poor to take a step into the Casino luxury. Save up at least <:coins:1172819933093179443>` 50 Coins ` to get started.",ephemeral=True)
     else:

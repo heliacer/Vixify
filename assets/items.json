@@ -51,6 +51,7 @@
   {
     "name": "Use /coems",
     "description": "Silly command for silly people",
+    "emoji" : ":clown:",
     "price": 380,
     "id": 1001,
     "type" : "command"
@@ -58,6 +59,7 @@
   {
     "name": "Use /chatrevive",
     "description": "Wake up a dead chat",
+    "emoji" : ":fire:",
     "price": 400,
     "id": 1002,
     "type": "command"
@@ -65,27 +67,40 @@
   {
     "name": "Padlock",
     "description": "Protects your coins",
+    "emoji" : ":lock: ",
     "price": 200,
     "id": 2001,
     "type": "utility",
-    "ownstack" : 0
+    "ownstack" : 0,
+    "rarity" : 2
   },
   {
     "name": "Lockpick",
     "description": "Break into a locked wallet",
+    "emoji" : ":key:",
     "price": 200,
     "id": 2002,
     "type": "utility",
-    "ownstack" : 0
+    "ownstack" : 0,
+    "rarity" : 2
   },
   {
     "name": "Golden Padlock",
     "description": "Rich people's padlock",
-    "price": 800,
-    "id": 2010,
+    "emoji" : ":closed_lock_with_key: ",
+    "price": 1000,
+    "id": 2003,
     "type": "utility",
     "ownstack" : 0,
-    "rarity" : 3,
+    "rarity" : 4,
     "buyable" : false
+  },
+  {
+    "name": "Fox Plushie",
+    "description": "A cute fox plushie",
+    "emoji" :  ":fox:",
+    "price": 30,
+    "id": 3003,
+    "ownstack" : 0
   }
 ]

@@ -6,7 +6,8 @@ import db
 import random
 from typing import List  
 from core.misc import winchance
-from core.items import getRandomItemByRarity,getItems,getItemByID,Item
+from collections import Counter
+from core.items import getRandomItemByRarity,getItems,getItemByID,getItemBoard,Item
 
 LOOTBOX_PRICE = 50
 
@@ -18,8 +19,8 @@ class LootboxUI(ui.View):
     self.total_rewards = total_rewards
     
     # list of items which only can be owned once that the user owns
-    owned = set(item[0] for item in db.items.getall(user.id) if getItemByID(item[0]).ownstack == 1)
-    self.query = [item for item in getItems() if item.id not in owned]
+    owned = set(item.id for item in db.items.getall(user.id) if getItemByID(item.id).ownstack == 1)
+    self.query = [item for item in getItems() if item.id not in owned and item.type not in ['role','command']]
 
     if next:
       openButton = ui.Button(label='Open lootbox', emoji='<:checkout:1175007951669436446>', style=discord.ButtonStyle.primary)
@@ -31,8 +32,6 @@ class LootboxUI(ui.View):
       self.add_item(claimButton)
 
   async def open(self, interaction: discord.Interaction):
-    if self.index == 1:
-      self.setday(interaction.user.id)
     if interaction.user != self.user:
       await interaction.response.send_message('You are not allowed to open lootboxes for other users!', ephemeral=True)
       return
@@ -43,7 +42,7 @@ class LootboxUI(ui.View):
     embed2 = discord.Embed()
     db.exchange(interaction.client.user.id,interaction.user.id,LOOTBOX_PRICE)
     if winchance(80):
-      reward = getRandomItemByRarity(3,self.query)
+      reward = getRandomItemByRarity(1,self.query)
       self.total_rewards.append(reward)
       embed2.description = f"**You opened a lootbox and found {reward.name}!**\n\n*Type:* ` {reward.type} ` *Rarity:* ` {reward.rarity} ` *Value:* <:coins:1172819933093179443> ` {reward.price} Coins `"
       embed2.set_thumbnail(url='https://cdn-icons-png.flaticon.com/128/7839/7839136.png')
@@ -65,17 +64,18 @@ class LootboxUI(ui.View):
     # TODO : add roles correctly
     for reward in self.total_rewards:
       if reward.type == 'role':
-        await interaction.user.add_roles(reward.id)
+        if interaction.guild.get_role(reward.id) and reward.id not in [role.id for role in interaction.user.roles]:
+          await interaction.user.add_roles(reward.id)
       else:
         db.items.increase(interaction.user.id,reward.id)
-    rewardtable = '\n'.join([reward.name for reward in self.total_rewards])
-    embed = discord.Embed(description=f'Claimed all rewards!\n{rewardtable}')
+
+    itemsmerged = Counter(item.id for item in self.total_rewards)
+    baseitems = [db.BaseItem(item_id, total_amount) for item_id, total_amount in itemsmerged.items()]
+    itemboard = getItemBoard(baseitems)
+
+    embed = discord.Embed(description=f'**<:partyhorn:1175408062782263397> You claimed all rewards!**\n\n{itemboard}')
     self.reset()
     await interaction.response.edit_message(embed=embed, view=None)
-
-  def setday(self, user_id: int):
-    timestamp = int(datetime.now().timestamp())
-    db.events.put(user_id, 101,timestamp)
 
   def reset(self):
     self.index = 1
@@ -108,7 +108,3 @@ class GameCheckoutGUI(discord.ui.View):
       print(message)
       await message.delete()
       await message.channel.send(embed=embed)
-
-
-class SlotMachineUI():
-  pass

@@ -1,85 +1,134 @@
 import sqlite3
 import json
-import os
-from typing import List, Tuple
+from typing import List
 
 BASE = {'economy':['user_id','coins','rank','xp'],'items':['user_id','data']}
 
-class Datastruct:
+class BaseItem:
+    '''
+    Base class for all items, which serialize and deserialize to and from the database
+    '''
+    def __init__(self, id: int, value: int):
+        self.id = id
+        self.value = value
+
+    def __eq__(self, value: 'BaseItem') -> bool:
+      return self.id == value.id
+
+    def __repr__(self):
+        return f"BaseItem {self.id} ({self.value})"
+    
+    @staticmethod
+    def unload(data: str) -> List['BaseItem']:
+        '''
+        Unpacks the JSON string from database into a list of `BaseItem` objects
+        '''
+        return [BaseItem(item[0], item[1]) for item in json.loads(data)]
+  
+    @staticmethod
+    def pack(data: List['BaseItem']) -> str:
+        '''
+        Packs the list of `BaseItem` objects into a JSON string for database storage
+        '''
+        return json.dumps([[item.id, item.value] for item in data])
+
+class DataStruct:
+  '''
+  Base class for all data structures, which use the same methods to interact with the database
+  '''
   def __init__(self):
     self.table = type(self).__name__.lower()
 
-  def put(self, user_id: int, data_id: int, value: int = 0):
+  def put(self, user_id: int, data_id: int, value: int = 0) -> None:
+    '''
+    Put a value into a DataStruct
+    '''
     result = fetch(self.table, "data", user_id)
-    data: List[Tuple[int, int]]
-    new_item = (data_id, value)
+    data: List[BaseItem]
+    new_item = BaseItem(data_id, value)
     if result == 0:
-      data = [new_item]
+      data: List[BaseItem] = [new_item]
     else:
-      data = json.loads(result)
+      data = BaseItem.unload(result)
       for idx, item in enumerate(data):
-        if item[0] == data_id:
+        if item.id == data_id:
           data[idx] = new_item
           break
       else:
         data.append(new_item)
-    store(self.table, 'data', user_id, json.dumps(data))
+    store(self.table, 'data', user_id, BaseItem.pack(data))
 
   def get(self, user_id: int, data_id: int = None) -> int:
-    result = fetch(self.table, 'data', user_id)
-    if result != 0:
-      items: List[Tuple[int, int]] = json.loads(result)
-      if data_id:
-        for item in items:
-          if item[0] == data_id:
-            return int(item[1])
-    return 0
+      '''
+      Get a value `int` from a DataStruct
+      '''
+      result = fetch(self.table, 'data', user_id)
+      if result != 0:
+          items = BaseItem.unload(result)
+          return next((item.value for item in items if item.id == data_id), 0) if data_id is not None else 0
+      return 0
 
-  def getall(self, user_id: int) -> List[Tuple[int, int]]:
+  def getall(self, user_id: int) -> List[BaseItem]:
+    '''
+    Get all values `BaseItem` from a `DataStruct`
+    '''
     result = fetch(self.table, 'data', user_id)
     if result != 0:
-      return json.loads(result)
+      return BaseItem.unload(result)
     return []
 
-  def increase(self, user_id: int, data_id: int, step: int = 1):
+  def increase(self, user_id: int, data_id: int, step: int = 1) -> None:
+    '''
+    Increase a value in a `DataStruct` `BaseItem`
+    '''
     value = self.get(user_id, data_id)
     self.put(user_id, data_id, value + step)
 
-  def decrease(self, user_id: int, data_id: int, step: int = 1):
+  def decrease(self, user_id: int, data_id: int, step: int = 1) -> None:
+    '''
+    Decrease a value in a `DataStruct` `BaseItem`
+    '''
     value = self.get(user_id, data_id)
     self.put(user_id, data_id, value - step)
 
-class Items(Datastruct):
+# datastructs which inherit from the base class  
+
+class Items(DataStruct):
   def __init__(self):
     super().__init__()
 
-class Events(Datastruct):
+class Mails(DataStruct):
   def __init__(self):
     super().__init__()
 
-# localise the data structs
+class Usage(DataStruct):
+  def __init__(self):
+    super().__init__()
 
-items = Items()
-events = Events()
-
-# SQL functions
+# SQL connection & cursor
 conn = sqlite3.connect('vix.db')
 c = conn.cursor()
 
+# localise the data structs
+items = Items()
+mails = Mails()
+usage = Usage()
+
 c.execute('''CREATE TABLE IF NOT EXISTS economy (user_id INTEGER PRIMARY KEY,coins INTEGER,rank INTEGER,xp INTEGER);''')
-for table in Datastruct.__subclasses__():
+for table in DataStruct.__subclasses__():
   c.execute(f'''CREATE TABLE IF NOT EXISTS {table.__name__.lower()} (user_id INTEGER PRIMARY KEY, data TEXT);''')
 conn.commit()
 
-def init(value: int,id: int):
+# SQL functions
+def init(value: int,id: int) -> None:
   c.execute('''INSERT OR IGNORE INTO economy (user_id, coins) VALUES (?, ?);''', (id, value))
   conn.commit()
 
-def tablehasdata(table):
+def tablehasdata(table) -> bool:
   c.execute(f'SELECT * FROM {table}')
   return c.fetchone() != None
 
-def deletedata(table:str):
+def deletedata(table:str) -> None:
   '''
   Delete all data from a table
   '''
@@ -88,7 +137,10 @@ def deletedata(table:str):
   c.execute(f'DELETE FROM {table}')
   conn.commit()
 
-def fetch(table: str, value: str = None, user_id: int = None):
+def fetch(table: str, value: str = None, user_id: int = None) -> int | str:
+  '''
+  Fetch data from a table directly
+  '''
   query = f"SELECT {value} FROM {table}" if value else f"SELECT * FROM {table}"
   query += f" WHERE user_id = ?" if user_id else ""
   c.execute(query, (user_id,) if user_id else ())
@@ -105,7 +157,10 @@ def fetch(table: str, value: str = None, user_id: int = None):
     result = c.fetchall()
   return result
 
-def store(table:str,value: str,user_id:int,data):
+def store(table:str,value: str,user_id:int,data) -> None:
+  '''
+  Store data in a table directly
+  '''
   c.execute(f'''INSERT OR IGNORE INTO {table} (user_id, {value}) VALUES (?, ?)''', (user_id, 1))
   c.execute(f"""UPDATE {table} SET {value} = ? WHERE user_id = ?""", (data, user_id))
   conn.commit()

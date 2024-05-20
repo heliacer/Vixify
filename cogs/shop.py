@@ -55,7 +55,7 @@ async def loadpage(interaction: discord.Interaction,page: int,balance: int,sale_
       balance_format = f"<:coins:1172819933093179443> `` {item.price * sale_percent:,.0f} Coins ``" 
     elif item.price * sale_percent > balance:
       balance_format = f"<:disabledcoins:1178939795288891432> *`` {item.price* sale_percent:,.0f} Coins ``*" 
-    page_embed.add_field(name=item.name,value=f"*{item.description}*\n{balance_format}",inline=True)
+    page_embed.add_field(name=f"{item.emoji} {item.name}",value=f"*{item.description}*\n{balance_format}",inline=True)
   page_embed.set_footer(text=f"Page {page}/{(len(CONTENT[section])+5)//6}")
   embeds.append(page_embed)
   transaction_embed = discord.Embed(description="")
@@ -100,7 +100,7 @@ class MainMenu(ui.View):
     buttonright = ui.Button(emoji="<:arrowright:1173619195624308776> ",custom_id="view.ArrowRight",disabled=right_disabled,row=1)
     items = list(CONTENT[self.section])[6*(page-1):6*page]
     user_item_ids = [role.id for role in parent.user.roles]
-    user_item_ids.extend(item[0] for item in db.items.getall(parent.user.id) if getItemByID(item[0]).ownstack == 1)
+    user_item_ids.extend(item[0] for item in db.items.getall(parent.user.id) if getItemByID(item.id).ownstack == 1)
     nonstackable = [id for id in self.selection if getItemByID(id,CONTENT[self.section]).ownstack == 1]
     options = [discord.SelectOption(label=item.name,value=item.id) for item in items if item.price*self.sale_percent <= balance-price and item.id not in nonstackable and item.id not in user_item_ids]
     menuselect = ui.Select(custom_id="view.MenuSelect", placeholder="Select from Page", min_values=1, max_values=1, options=options,row=0)

@@ -1,7 +1,6 @@
 from discord.ext import commands
 import discord
 import db
-import os
 import config
 from core.plugins import Plugin
 

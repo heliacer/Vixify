@@ -4,7 +4,7 @@ import random
 from discord import app_commands
 from discord.ext import commands
 from core.misc import loadbarimage, winchance, isprivileged
-from core.items import getItemByID, getItemsByType
+from core.items import getItemBoard
 from core.plugins import Plugin
 
 class Economy(Plugin):
@@ -206,23 +206,7 @@ class Economy(Plugin):
     embed = discord.Embed(description="")
     embed.set_author(name=f"{user.display_name}'s Inventory", icon_url=user.avatar.url)
 
-    item_categories = {'role': [], 'command': [], 'utility': [], 'misc': []}
-
-    for dbitem in items:
-        item = getItemByID(dbitem[0])
-        category = item.type if item.type in item_categories else 'misc'
-        if category in ['role', 'command']:
-            item_categories[category].append(f"**{item.name}**\n")
-        else:
-            item_categories[category].append(f"*{dbitem[1]}x* **{item.name}**\n")
-
-    for category, items_list in item_categories.items():
-        if items_list:
-            category_label = category.capitalize()
-            embed.description += f"` {category_label} `\n{''.join(items_list)}\n"
-
-    total_items = sum(item[1] for item in items)
-    embed.description += f"**Total:** ` {total_items} items `\n\n"
+    embed.description = getItemBoard(items)
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
 

@@ -1,5 +1,8 @@
 import os
-dev = os.uname().nodename != 'pihost'
+import platform
+
+nodename = os.getenv('COMPUTERNAME') if platform.system() == 'Windows' else os.uname().nodename
+dev = nodename != 'pihost'
 
 SHOP_CHANNEL = 1215343913121095722 if dev else 1142779979931856896
 MOD_CHANNEL = 1215939069452877924 if dev else 1128038759083032657

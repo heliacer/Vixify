@@ -84,13 +84,14 @@ def getItemBoard(dbitems: List[BaseItem]) -> str:
       if category in ['role', 'command']:
           item_categories[category].append(f"**{itemname}**\n")
       else:
-          item_categories[category].append(f"*{dbitem.value}x* **{itemname}**\n")
+          print(dbitem.data)
+          item_categories[category].append(f"*{dbitem.data[0]}x* **{itemname}**\n")
 
   for category, items_list in item_categories.items():
       if items_list:
           category_label = category.capitalize()
           board += f"` {category_label} `\n{''.join(items_list)}\n"
 
-  total_items = sum(item.value for item in dbitems)
+  total_items = sum(item.data[0] for item in dbitems)
   board += f"**Total:** ` {total_items} items `\n\n"
   return board

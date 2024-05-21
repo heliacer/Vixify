@@ -8,14 +8,15 @@ class BaseItem:
     '''
     Base class for all items, which serialize and deserialize to and from the database
     '''
-    def __init__(self, id: int, value: int):
+    def __init__(self, id: int, data: List[int]) -> None:
         self.id = id
-        self.value = value
+        self.data = data
+        
 
     def __eq__(self, value: 'BaseItem') -> bool:
       return self.id == value.id
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"BaseItem {self.id} ({self.value})"
     
     @staticmethod
@@ -30,78 +31,78 @@ class BaseItem:
         '''
         Packs the list of `BaseItem` objects into a JSON string for database storage
         '''
-        return json.dumps([[item.id, item.value] for item in data])
+        return json.dumps([[item.id, item.data] for item in data])
 
-class DataStruct:
+class Column:
   '''
-  Base class for all data structures, which use the same methods to interact with the database
+  Base class for all data columns, which use the same methods to interact with the database
   '''
   def __init__(self):
     self.table = type(self).__name__.lower()
 
-  def put(self, user_id: int, data_id: int, value: int = 0) -> None:
+  def put(self, user_id: int, data_id: int, value: int = 0,key: int = 0) -> None:
     '''
-    Put a value into a DataStruct
+    Put a value into a Column
+    TODO this has some bugs 
     '''
     result = fetch(self.table, "data", user_id)
-    data: List[BaseItem]
-    new_item = BaseItem(data_id, value)
+    baseitems: List[BaseItem]
+    new_item = BaseItem(data_id, [value])
     if result == 0:
-      data: List[BaseItem] = [new_item]
+      baseitems: List[BaseItem] = [new_item]
     else:
-      data = BaseItem.unload(result)
-      for idx, item in enumerate(data):
+      baseitems = BaseItem.unload(result)
+      for item in baseitems:
         if item.id == data_id:
-          data[idx] = new_item
-          break
+          item.data[key] = value
       else:
-        data.append(new_item)
-    store(self.table, 'data', user_id, BaseItem.pack(data))
+        baseitems.append(new_item)
+    store(self.table, 'data', user_id, BaseItem.pack(baseitems))
 
-  def get(self, user_id: int, data_id: int = None) -> int:
+  def get(self, user_id: int, data_id: int = None,key: int = 0) -> int:
       '''
-      Get a value `int` from a DataStruct
+      Get a value `int` from a Column
       '''
       result = fetch(self.table, 'data', user_id)
       if result != 0:
           items = BaseItem.unload(result)
-          return next((item.value for item in items if item.id == data_id), 0) if data_id is not None else 0
+          return next((item.data[key] for item in items if item.id == data_id), 0) if data_id is not None else 0
       return 0
 
   def getall(self, user_id: int) -> List[BaseItem]:
     '''
-    Get all values `BaseItem` from a `DataStruct`
+    Get all values `BaseItem` from a `Column`
     '''
     result = fetch(self.table, 'data', user_id)
     if result != 0:
       return BaseItem.unload(result)
     return []
 
-  def increase(self, user_id: int, data_id: int, step: int = 1) -> None:
+  def increase(self, user_id: int, data_id: int, step: int = 1,key: int = 0) -> None:
     '''
-    Increase a value in a `DataStruct` `BaseItem`
+    Increase a `int` value in a `Column` `BaseItem`
     '''
-    value = self.get(user_id, data_id)
-    self.put(user_id, data_id, value + step)
+    value = self.get(user_id, data_id,key)
+    self.put(user_id, data_id, value + step,key)
 
-  def decrease(self, user_id: int, data_id: int, step: int = 1) -> None:
+  def decrease(self, user_id: int, data_id: int, step: int = 1,key: int = 0) -> None:
     '''
-    Decrease a value in a `DataStruct` `BaseItem`
+    Decrease a `int` value in a `Column` `BaseItem`
     '''
-    value = self.get(user_id, data_id)
-    self.put(user_id, data_id, value - step)
+    value = self.get(user_id, data_id,key)
+    self.put(user_id, data_id, value - step,key)
 
-# datastructs which inherit from the base class  
+# Columns which inherit from the Column class  
 
-class Items(DataStruct):
+class Items(Column):
   def __init__(self):
     super().__init__()
 
-class Mails(DataStruct):
+class Mails(Column):
   def __init__(self):
     super().__init__()
 
-class Usage(DataStruct):
+class Usage(Column):
   def __init__(self):
     super().__init__()
 
@@ -115,7 +116,7 @@ mails = Mails()
 usage = Usage()
 
 c.execute('''CREATE TABLE IF NOT EXISTS economy (user_id INTEGER PRIMARY KEY,coins INTEGER,rank INTEGER,xp INTEGER);''')
-for table in DataStruct.__subclasses__():
+for table in Column.__subclasses__():
   c.execute(f'''CREATE TABLE IF NOT EXISTS {table.__name__.lower()} (user_id INTEGER PRIMARY KEY, data TEXT);''')
 conn.commit()
 

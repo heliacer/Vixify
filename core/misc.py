@@ -76,3 +76,21 @@ def isprivileged(member: discord.Member) -> bool:
   Check if a member is privileged (is a booster, is an admin, or is the owner of the guild)
   '''
   return member.premium_since or member.guild_permissions.administrator or member.guild.owner == member
+
+def format_seconds(seconds: float) -> str:
+    delta = datetime.timedelta(seconds=seconds)
+    days = delta.days
+    hours, remainder = divmod(delta.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    
+    parts = []
+    if days > 0:
+        parts.append(f"{days} day{'s' if days > 1 else ''}")
+    elif hours > 0:
+        parts.append(f"{hours} hour{'s' if hours > 1 else ''}")
+    elif minutes > 0:
+        parts.append(f"{minutes} minute{'s' if minutes > 1 else ''}")
+    elif seconds > 0:
+        parts.append(f"{seconds} second{'s' if seconds > 1 else ''}")
+    
+    return ', '.join(parts)

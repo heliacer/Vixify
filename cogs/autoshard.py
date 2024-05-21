@@ -3,7 +3,7 @@ import config
 import db
 from discord.ext import commands
 from core.misc import messages, warnings, has_penalty, ranks
-from core.misc import broadcast, calc_cooldown, calc_message, stripCodeBlocks, isauthor
+from core.misc import broadcast, calc_cooldown, calc_message, stripCodeBlocks, isauthor, format_seconds
 import datetime
 from discord import app_commands
 import traceback
@@ -185,13 +185,13 @@ class Events(Plugin):
     async def on_member_join(self, member):
         current = db.fetch("economy", "coins", self.bot.user.id)
         set("economy", "coins", self.bot.user.id, current + 500)
-
+    
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
         if isinstance(error, (commands.CheckFailure, commands.CommandNotFound)):
             return
         if isinstance(error, commands.CommandOnCooldown):
-            embed = discord.Embed(description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again in {error.retry_after:.2f} seconds.***')
+            embed = discord.Embed(description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')
             await ctx.send(embed=embed, ephemeral=True)
         elif isinstance(error, (commands.MissingRequiredArgument, commands.MemberNotFound, commands.BadArgument, commands.MissingPermissions, commands.BotMissingPermissions)):
             embed = discord.Embed(description=f'**<:err:1203262608929722480> {error}**')
@@ -199,29 +199,25 @@ class Events(Plugin):
         elif isinstance(error, commands.CommandError):
             embed = discord.Embed(description=f'**<:err:1203262608929722480> {error}**')
             await ctx.send(embed=embed)
-        else: # Unhandled error, not related to the command
+        else:
             exception = traceback.format_exception(type(error), error, error.__traceback__)
             file = discord.File(filename="error.log", fp=io.BytesIO(''.join(exception).encode()))
             ErrorEmbed = discord.Embed(description=f'**<:err:1203262608929722480> There was an internal error.**')
             ErrorEmbed.set_footer(text=str(error))
             await ctx.send(embed=ErrorEmbed, file=file)
 
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.CommandOnCooldown):
+        CooldownEmbed = discord.Embed(
+            description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')
+        await interaction.response.send_message(embed=CooldownEmbed, ephemeral=True)
+    else:
+        exception = traceback.format_exception(type(error), error, error.__traceback__)
+        file = discord.File(filename="error.log", fp=io.BytesIO(''.join(exception).encode()))
+        ErrorEmbed = discord.Embed(description=f'**<:err:1203262608929722480> There was an internal error.**')
+        ErrorEmbed.set_footer(text=str(error))
+        await interaction.response.send_message(embed=ErrorEmbed, file=file)
 
-    @commands.Cog.listener()
-    async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        if isinstance(error, app_commands.CommandOnCooldown):
-            CooldownEmbed = discord.Embed(
-                description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again in {error.retry_after:.2f} seconds.***')
-            await interaction.response.send_message(embed=CooldownEmbed, ephemeral=True)
-        else:
-            traceback.print_exception(error)
-            exception = traceback.format_exception(error)
-            file = discord.File(filename="error.log", fp=io.BytesIO(''.join(exception).encode()))
-            ErrorEmbed = discord.Embed(
-                description=f'***<:err:1203262608929722480> There was an unhandled Internal Error. Please try again later.***')
-            ErrorEmbed.set_footer(text=error)
-            await interaction.response.send_message(embed=ErrorEmbed, file=file)
-
-
-async def setup(bot):
+async def setup(bot: commands.AutoShardedBot):
+    bot.tree.on_error = on_app_command_error 
     await bot.add_cog(Events(bot))

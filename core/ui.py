@@ -70,7 +70,7 @@ class LootboxUI(ui.View):
         db.items.increase(interaction.user.id,reward.id)
 
     itemsmerged = Counter(item.id for item in self.total_rewards)
-    baseitems = [db.BaseItem(item_id, total_amount) for item_id, total_amount in itemsmerged.items()]
+    baseitems = [db.BaseItem(item_id, [total_amount]) for item_id, total_amount in itemsmerged.items()]
     itemboard = getItemBoard(baseitems)
 
     embed = discord.Embed(description=f'**<:partyhorn:1175408062782263397> You claimed all rewards!**\n\n{itemboard}')

@@ -6,7 +6,8 @@ import db
 import config
 import random
 from core.plugins import Plugin
-from core.misc import isprivileged
+from typing import List
+from core.items import getItemByID
 from core.ui import LootboxUI, LOOTBOX_PRICE
 
 SLOT_MACHINE_PRICE = 100
@@ -81,10 +82,19 @@ class Generic(Plugin):
       await interaction.response.send_message("Pinging the kittens...",ephemeral=True,delete_after=3)
       await interaction.channel.send(f"**{interaction.user.mention} Pinged <@&1139862719726624768>! :smile:**")
 
-  @app_commands.command(name = "use",description = "Use an item from your inventory!")
-  async def use(self, interaction: discord.Interaction, item: int):
-    raise NotImplementedError("This command is not implemented yet.")
+  async def item_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+      items = [getItemByID(item.id) for item in db.items.getall(interaction.user.id)]
+      print(items)
+      return [
+          app_commands.Choice(name=item.name, value=item.id)
+          for item in items if current.lower() in item.name.lower()
+      ]
 
+  @app_commands.command(name="use", description="uses an item from your inventory")
+  @app_commands.autocomplete(item=item_autocomplete)
+  async def use(self, interaction: discord.Interaction, item: str):
+      await interaction.response.send_message(f"**{interaction.user.mention}** used **{item}**")
+  
   @app_commands.command(name = "daily",description = "Claim your daily coins!")
   @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))
   async def daily(self, interaction: discord.Interaction):
@@ -103,6 +113,7 @@ class Generic(Plugin):
     await interaction.response.send_message(embed=embed,view=LootboxUI(interaction.user))
 
   @app_commands.command(description="Take a risky action in hope of getting boosts!")
+  @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))
   async def slotmachine(self, interaction: discord.Interaction):
     user_balance = db.fetch('economy', 'coins', interaction.user.id)
     if user_balance < SLOT_MACHINE_PRICE:
@@ -111,13 +122,12 @@ class Generic(Plugin):
         ephemeral=True
       )
       return
-
+    db.exchange(interaction.client.user.id, interaction.user.id, SLOT_MACHINE_PRICE)
     for i in range(8):
       slot1, slot2, slot3 = [random.choice(SLOTS) for _ in range(3)]
       slotformat = ' : '.join([slot1, slot2, slot3])
-      embed = discord.Embed(description=f"===========\n{slotformat}\n===========\n")
-      embed.set_author(name='Slot Machine', icon_url='https://cdn-icons-png.flaticon.com/128/5659/5659287.png')
-      embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/128/9757/9757887.png")
+      embed = discord.Embed(description=f"{slotformat}\n\n")
+      embed.set_author(name='Slot Machine', icon_url='https://cdn-icons-png.flaticon.com/128/7370/7370028.png')
 
       if interaction.response.is_done():
         await interaction.edit_original_response(embed=embed)
@@ -126,7 +136,7 @@ class Generic(Plugin):
 
     # Final result
     if slot1 == slot2 == slot3:
-      embed.description += '\n**Jackpot!** '
+      embed.description += '**Jackpot!** '
       if slot1 in [":apple:", ":banana:", ":cherries:", ":grapes:", ":watermelon:"]:
         embed.description += f"**You got the ` Golden {slot1.split(':')[1].capitalize()} `**"
       elif slot1 == "<:coins:1172819933093179443>":
@@ -145,8 +155,8 @@ class Generic(Plugin):
         "<:sandclock:1203261564291911680>": "Shop discount"
       }
       boost_durations = {
-        1: "5 minute",
-        2: "10 minute"
+        1: "5 minutes",
+        2: "10 minutes"
       }
       
       matched = [slot for slot in [slot1, slot2, slot3] if slot in boosts]
@@ -163,7 +173,7 @@ class Generic(Plugin):
       for slot in unique_matches:
         count = matched.count(slot)
         if count in boost_durations:
-          embed.description += f'\n` {boost_durations[count]} {boosts[slot]} `'
+          embed.description += f'\n***{boosts[slot]}*** ` {boost_durations[count]} `'
     await interaction.edit_original_response(embed=embed)
 
 async def setup(bot):

@@ -8,11 +8,11 @@ CONFIRM_MESSAGE = "**<:confirm:1175396326272409670> Task executed.**"
 CONFIRM_EMBED = discord.Embed(description=CONFIRM_MESSAGE)
 
 class Admin(Plugin):
-  @commands.command()
+  @commands.command(description="Clears a table in the database.")
   @commands.has_permissions(administrator=True)
   async def cleartable(self, ctx, table, syntax=None):
     if not db.fetch(f'SELECT * FROM {table}') or syntax == "force":
-      db.modify(f'DELETE * FROM {table}')
+      db.commit(f'DELETE * FROM {table}')
       message = CONFIRM_MESSAGE
     else:
       message = f"**<:remove:1175005705422512218> Table has data. Use `force` to clear table.**"
@@ -32,18 +32,6 @@ class Admin(Plugin):
   async def setstatus(self, ctx, status):
     await self.bot.change_presence(activity = discord.Activity(type = discord.ActivityType.custom,name = " ",state = status.replace("_"," ")))
     await ctx.send(embed=CONFIRM_EMBED, delete_after=10)
-
-  @commands.command()
-  @commands.has_permissions(administrator=True)
-  async def modify(self, ctx, query):
-    db.modify(query)
-    await ctx.send(embed=CONFIRM_EMBED, delete_after=10)
-
-  @commands.command()
-  async def fetch(self, ctx, query):
-    result = db.fetch(query)
-    message = f"```\n{result}\n```"
-    await ctx.send(message, delete_after=20)
 
   @commands.group()
   @commands.has_permissions(administrator=True)
@@ -67,7 +55,7 @@ class Admin(Plugin):
 
   @items.command()
   async def put(self, ctx, member: discord.Member, item_id: int, value: int):
-      db.items.put(member.id, item_id, value)
+      db.items.inc(member.id, item_id, value)
       await ctx.send(embed=CONFIRM_EMBED, delete_after=10)
 
 async def setup(bot):

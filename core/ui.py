@@ -19,7 +19,7 @@ class LootboxUI(ui.View):
     self.total_rewards = total_rewards
     
     # list of items which only can be owned once that the user owns
-    owned = set(item.id for item in db.items.getall(user.id) if getItemByID(item.id).ownstack == 1)
+    owned = set(item.id for item in db.items.all(user.id) if getItemByID(item.id).ownstack == 1)
     self.query = [item for item in getItems() if item.id not in owned and item.type not in ['role','command']]
 
     if next:
@@ -35,7 +35,7 @@ class LootboxUI(ui.View):
     if interaction.user != self.user:
       await interaction.response.send_message('You are not allowed to open lootboxes for other users!', ephemeral=True)
       return
-    user_balance = db.fetch('economy', 'coins', interaction.user.id)
+    user_balance = db.users.get('coins', interaction.user.id)
     embed1 = discord.Embed(description='<a:loading:1239608763447640114> ***Opening lootbox...***', color=discord.Color.blurple())
     await interaction.response.edit_message(embed=embed1, view=None)
     await asyncio.sleep(1)
@@ -67,10 +67,10 @@ class LootboxUI(ui.View):
         if interaction.guild.get_role(reward.id) and reward.id not in [role.id for role in interaction.user.roles]:
           await interaction.user.add_roles(reward.id)
       else:
-        db.items.increase(interaction.user.id,reward.id)
+        db.items.inc(interaction.user.id,reward.id)
 
     itemsmerged = Counter(item.id for item in self.total_rewards)
-    baseitems = [db.Row(item_id, [total_amount]) for item_id, total_amount in itemsmerged.items()]
+    baseitems = [db.BaseItem(item_id,amount=total_amount) for item_id, total_amount in itemsmerged.items()]
     itemboard = getItemBoard(baseitems)
 
     embed = discord.Embed(description=f'**<:partyhorn:1175408062782263397> You claimed all rewards!**\n\n{itemboard}')
@@ -105,6 +105,5 @@ class GameCheckoutGUI(discord.ui.View):
       await interaction.message.delete()
       await interaction.channel.send(embed=embed)
     if message:
-      print(message)
       await message.delete()
       await message.channel.send(embed=embed)

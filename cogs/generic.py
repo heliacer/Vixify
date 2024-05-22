@@ -84,7 +84,6 @@ class Generic(Plugin):
 
   async def item_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
       items = [getItemByID(item.id) for item in db.items.all(interaction.user.id)]
-      print(items)
       return [
           app_commands.Choice(name=item.name, value=item.id)
           for item in items if current.lower() in item.name.lower()

@@ -168,8 +168,8 @@ class Events(Plugin):
                     f"**:tada: Congrats {message.author.mention}, You just reached <:level:1172820830812643389> `` Rank {user_rank + rank_new} `` !\n\nTIP:** *You can exchange coins earned by chatting in <#{config.SHOP_CHANNEL}>.\nEnjoy your stay!*")
                 user_xp = 0
                 xp_new = xp_new - 15
-        db.users.put('rank',user_id,user_rank + rank_new)
-        db.users.put("xp",user_id,xp_new + user_xp)
+        db.users.inc('rank',user_id,rank_new)
+        db.users.inc("xp",user_id,xp_new )
         if bank_balance < coins_new:
             if not bank_balance == 0:
                 db.exchange(user_id, self.bot.user.id, bank_balance)
@@ -183,8 +183,7 @@ class Events(Plugin):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        current = db.users.get('coins',self.bot.user.id)
-        db.users.set('coins',self.bot.user.id, current + 500)
+        db.users.inc('coins',self.bot.user.id,500)
     
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):

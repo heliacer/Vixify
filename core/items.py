@@ -2,6 +2,7 @@ import json
 from typing import List
 import discord
 import random
+from db import BaseItem,BaseUser
 
 class Item:
     def __init__(self, name: str, description: str, id: int,price: int= 0, type: str= 'misc',emoji: discord.Emoji= '',ownstack: int=1,rarity: int=1,buyable: bool=True):
@@ -73,23 +74,24 @@ def getRandomItemByRarity(rarity: int,items: List[Item] = ITEMS) -> Item:
     
     return random.choice(weighted_items)
 
-def getItemBoard(items: List[tuple]) -> str:
+def getItemBoard(baseitems: List[BaseItem]) -> str:
   item_categories = {'role': [], 'command': [], 'utility': [], 'misc': []}
-  board :str = ''
-  for row in items:
-      item = getItemByID(row.id)
-      category = item.type if item.type in item_categories else 'misc'
-      itemname = item.name if item.emoji == '' else f"{item.emoji} {item.name}"
-      if category in ['role', 'command']:
-          item_categories[category].append(f"**{itemname}**\n")
-      else:
-          item_categories[category].append(f"*{row.values[0]}x* **{itemname}**\n")
+  board : str = ''
+  total : int = 0
+  for baseitem in baseitems:
+    total += baseitem.amount
+    item = getItemByID(baseitem.id)
+    category = item.type if item.type in item_categories else 'misc'
+    itemname = item.name if item.emoji == '' else f"{item.emoji} {item.name}"
+    if category in ['role', 'command']:
+      item_categories[category].append(f"**{itemname}**\n")
+    else:
+      item_categories[category].append(f"*{baseitem.amount}x* **{itemname}**\n")
 
   for category, items_list in item_categories.items():
-      if items_list:
-          category_label = category.capitalize()
-          board += f"` {category_label} `\n{''.join(items_list)}\n"
+    if items_list:
+      category_label = category.capitalize()
+      board += f"` {category_label} `\n{''.join(items_list)}\n"
 
-  total_items = sum(item.values[0] for item in items)
-  board += f"**Total:** ` {total_items} items `\n\n"
+  board += f"**Total:** ` {total} items `\n\n"
   return board

@@ -86,7 +86,7 @@ class Economy(Plugin):
       embed = discord.Embed(description=f"**<:padlock:1178730730998734980> {member.name} had a padlock.**")
       dm = discord.Embed(description=f"**{user.mention} tried to steal from you.**",color = 0x2b2d31)
       if winchance(20):
-        db.items.decrease(member.id,2001,1)
+        db.items.inc(member.id,2001,-1)
         embed.description += f"\n**You managed to break the padlock**"
         dm.description += f"\n**Unfortunately, {user.mention} managed to break your padlock, without any lockpick.**"
         if winchance(50):
@@ -199,12 +199,9 @@ class Economy(Plugin):
       return
 
     items = db.items.all(user.id)
-    print(items)
     embed = discord.Embed(description="")
     embed.set_author(name=f"{user.display_name}'s Inventory", icon_url=user.avatar.url)
-
     embed.description = getItemBoard(items)
-    
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 async def setup(bot):

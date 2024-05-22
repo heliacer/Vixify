@@ -100,7 +100,7 @@ class MainMenu(ui.View):
     buttonright = ui.Button(emoji="<:arrowright:1173619195624308776> ",custom_id="view.ArrowRight",disabled=right_disabled,row=1)
     items = list(CONTENT[self.section])[6*(page-1):6*page]
     user_item_ids = [role.id for role in parent.user.roles]
-    user_item_ids.extend(item[0] for item in db.items.getall(parent.user.id) if getItemByID(item.id).ownstack == 1)
+    user_item_ids.extend(item[0] for item in db.items.all(parent.user.id) if getItemByID(item.id).ownstack == 1)
     nonstackable = [id for id in self.selection if getItemByID(id,CONTENT[self.section]).ownstack == 1]
     options = [discord.SelectOption(label=item.name,value=item.id) for item in items if item.price*self.sale_percent <= balance-price and item.id not in nonstackable and item.id not in user_item_ids]
     menuselect = ui.Select(custom_id="view.MenuSelect", placeholder="Select from Page", min_values=1, max_values=1, options=options,row=0)
@@ -176,7 +176,7 @@ class CheckoutButtons(ui.View):
       if role:
         await interaction.user.add_roles(role)
       else:
-        db.items.increase(interaction.user.id,item_id,1)
+        db.items.put(interaction.user.id,item_id,1)
     await self.parent.edit_original_response(embed=embed,view=None)
 
   @ui.button(label="Go back",custom_id="View.CancelCheckout",emoji="<:undo:1175396297583366155>")
@@ -188,13 +188,13 @@ class SectionSelect(ui.View):
   def __init__(self,parent: discord.Interaction):
     super().__init__(timeout=None)
     self.parent = parent
-    self.balance = db.fetch("economy","coins",parent.user.id)
+    self.balance = db.users.get("coins",parent.user.id)
 
   options = [discord.SelectOption(label=key.capitalize(),value=key,emoji=value) for key, value in EMOJIS.items()]
   @ui.select(custom_id="View.SectionSelect",placeholder="Select a option",min_values=1,max_values=1,options=options,row=0)
   async def selection(self,interaction:discord.Interaction,select: ui.Select):
     await interaction.response.defer()
-    bank_balance = db.fetch('economy','coins',interaction.client.user.id)
+    bank_balance = db.users.get('coins',interaction.client.user.id)
     sale_percent = 1
     if bank_balance < interaction.guild.member_count * 100:
       sale_percent = 0.75

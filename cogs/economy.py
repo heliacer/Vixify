@@ -14,7 +14,7 @@ class Economy(Plugin):
 
   @commands.hybrid_command(name= "bank", description = 'The Vixify Bank gross value')
   async def bank(self,ctx):
-    bank_balance = db.fetch("economy","coins",self.bot.user.id)
+    bank_balance = db.users.get("coins",self.bot.user.id)
     status = ['Healthy','Sufficient funds, stable operations.']
     if bank_balance < ctx.guild.member_count *100:
       status = ['Undercapitalized','Running low on funds, 75% Shop goods sale.']
@@ -33,9 +33,9 @@ class Economy(Plugin):
       else:
         await ctx.send(f"{user.mention} is a Bot.\nBots don't have coins. lol.")
       return
-    coins_balance = db.fetch("economy","coins",user.id)
-    user_rank = db.fetch("economy","rank",user.id)
-    user_xp = db.fetch("economy","xp",user.id)
+    coins_balance = db.users.get("coins",user.id)
+    user_rank = db.users.get("rank",user.id)
+    user_xp = db.users.get("xp",user.id)
     if user_xp > 0:
       if user_rank > 0:
         percentage = (int(user_xp) / ((int(user_rank))*120)) * 100
@@ -60,8 +60,8 @@ class Economy(Plugin):
       await ctx.send(f"{member.mention} is a bot.\nBots don't have coins. lmao.")
       return
     
-    user_rank = db.fetch("economy","rank",user.id)
-    member_rank = db.fetch("economy","rank",member.id)
+    user_rank = db.users.get("rank",user.id)
+    member_rank = db.users.get("rank",member.id)
     if user_rank < 3:
       embed = discord.Embed(description="You need to reach <:level:1172820830812643389> `` Rank 2 `` to be able to steal.")
       embed.set_author(name='Nuh uh',url='https://discord.com/assets/b2dac9e1b4de07c5ae68.svg')
@@ -73,13 +73,13 @@ class Economy(Plugin):
       await ctx.send(embed=embed)
       return
     
-    user_balance = db.fetch("economy","coins",user.id)
+    user_balance = db.users.get("coins",user.id)
 
     if user_balance == 0:
         await ctx.send("You don't have any Coins left.", ephemeral=True, delete_after=10)
         return
     
-    member_balance = db.fetch("economy","coins",member.id)
+    member_balance = db.users.get("coins",member.id)
     member_padlock = db.items.get(member.id,2001)
 
     if member_padlock != 0:
@@ -117,12 +117,9 @@ class Economy(Plugin):
          steal_amount= round(user_balance*0.15)
       if user_balance < 20:
         steal_amount = user_balance
-      user_new_balance = user_balance + steal_amount
       member_new_balance = member_balance - steal_amount
 
-      db.store("economy","coins",user.id,user_new_balance)
-      db.store("economy","coins",member.id,member_new_balance)
-
+      db.exchange(user.id,member.id,steal_amount)
       embed = discord.Embed(
         description = f"**` {user} ` stole <:coins:1172819933093179443> ` {steal_amount:,} Coins ` from you.\nYou now have <:coins:1172819933093179443> ` {member_new_balance:,} coins ` left**",
         color = 0x2b2d31
@@ -153,7 +150,7 @@ class Economy(Plugin):
 
   @commands.hybrid_command(name = "share",description = "Share coins to other users")
   @app_commands.describe(amount = "amount of coins to share")
-  async def share(self, ctx, member : discord.Member, amount : int):
+  async def share(self, ctx: commands.Context, member : discord.Member, amount : int):
     if member == ctx.author:
       await ctx.send("You can't share yourself coins.",ephemeral=True,delete_after = 10)
       return
@@ -164,8 +161,8 @@ class Economy(Plugin):
       await ctx.send(f"{member.mention} is a bot.\nAre you a bot aswell?")
       return
     user = ctx.author
-    user_balance = db.fetch("economy","coins",user.id)
-    member_balance = db.fetch("economy","coins",member.id)
+    user_balance = db.users.get("coins",user.id)
+    member_balance = db.users.get("coins",member.id)
 
     if not user_balance or user_balance == 0:
       await ctx.send("You don't have any coins.",ephemeral = True,delete_after = 10)
@@ -176,10 +173,7 @@ class Economy(Plugin):
     if amount > user_balance:
       await ctx.send(f"You can only send up to <:coins:1172819933093179443> ` {user_balance:,} Coins `",ephemeral = True,delete_after = 10)
       return
-    user_new_balance = user_balance - amount
-    member_new_balance = member_balance + amount
-    db.store("economy","coins",user.id,user_new_balance)
-    db.store("economy","coins",member.id,member_new_balance)
+    db.exchange(member.id,user.id,amount)
     embed = discord.Embed(description = f"**Successfully shared <:coins:1172819933093179443> ` {amount:,} Coins ` with {member.mention}!**",color = 0x7afa89)
     await ctx.send(embed = embed)
 
@@ -187,6 +181,8 @@ class Economy(Plugin):
   @app_commands.describe(max="Maximum members to display")
   async def leaderboard(self,interaction:discord.Interaction,max: int = 15):
     items = db.board("coins",max)
+    print(items)
+    # TODO fix some bugs ( they will come up )
     bank = items[0][1]
     del items[0]
     embed= discord.Embed(title="<:coins:1172819933093179443> Coins Leaderboard",description=f'**Bank** `` {bank:,} Coins ``\n\n' + '\n'.join(f"**<@{row[0]}> `` {row[1]} Coins ``**" for row in items))
@@ -202,7 +198,8 @@ class Economy(Plugin):
         )
       return
 
-    items = db.items.getall(user.id)
+    items = db.items.all(user.id)
+    print(items)
     embed = discord.Embed(description="")
     embed.set_author(name=f"{user.display_name}'s Inventory", icon_url=user.avatar.url)
 

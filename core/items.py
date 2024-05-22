@@ -2,7 +2,6 @@ import json
 from typing import List
 import discord
 import random
-from db import Row
 
 class Item:
     def __init__(self, name: str, description: str, id: int,price: int= 0, type: str= 'misc',emoji: discord.Emoji= '',ownstack: int=1,rarity: int=1,buyable: bool=True):
@@ -74,10 +73,10 @@ def getRandomItemByRarity(rarity: int,items: List[Item] = ITEMS) -> Item:
     
     return random.choice(weighted_items)
 
-def getItemBoard(column: List[Row]) -> str:
+def getItemBoard(items: List[tuple]) -> str:
   item_categories = {'role': [], 'command': [], 'utility': [], 'misc': []}
   board :str = ''
-  for row in column:
+  for row in items:
       item = getItemByID(row.id)
       category = item.type if item.type in item_categories else 'misc'
       itemname = item.name if item.emoji == '' else f"{item.emoji} {item.name}"
@@ -91,6 +90,6 @@ def getItemBoard(column: List[Row]) -> str:
           category_label = category.capitalize()
           board += f"` {category_label} `\n{''.join(items_list)}\n"
 
-  total_items = sum(item.values[0] for item in column)
+  total_items = sum(item.values[0] for item in items)
   board += f"**Total:** ` {total_items} items `\n\n"
   return board

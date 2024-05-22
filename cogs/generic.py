@@ -48,7 +48,7 @@ class Generic(Plugin):
   @app_commands.describe(mode='Choose whether you want a Public or Private session. Public by default.')
   @app_commands.describe(bet='The amount you choose to bet. You can change this later.')
   async def casino(self, interaction: discord.Interaction, mode: app_commands.Choice[str] = None,bet: int = None):
-    host_balance = db.fetch('economy','coins',interaction.user.id)
+    host_balance = db.users.get('coins',interaction.user.id)
     if host_balance < 50:
       await interaction.response.send_message("You're too poor to take a step into the casino luxury. Save up at least <:coins:1172819933093179443>` 50 Coins ` to get started.",ephemeral=True)
       return
@@ -83,7 +83,7 @@ class Generic(Plugin):
       await interaction.channel.send(f"**{interaction.user.mention} Pinged <@&1139862719726624768>! :smile:**")
 
   async def item_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-      items = [getItemByID(item.id) for item in db.items.getall(interaction.user.id)]
+      items = [getItemByID(item.id) for item in db.items.all(interaction.user.id)]
       print(items)
       return [
           app_commands.Choice(name=item.name, value=item.id)
@@ -103,7 +103,7 @@ class Generic(Plugin):
   @app_commands.command(name = "lootbox",description = "Take a risky action in hope of getting coins and items!")
   @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))
   async def lootbox(self, interaction: discord.Interaction):
-    user_balance = db.fetch('economy', 'coins', interaction.user.id)
+    user_balance = db.users.get( 'coins', interaction.user.id)
     if user_balance < LOOTBOX_PRICE:
       await interaction.response.send_message(f"You're too poor to open a lootbox. Save up at least <:coins:1172819933093179443> ` {LOOTBOX_PRICE} Coins ` to get started.",ephemeral=True)
       return
@@ -115,7 +115,7 @@ class Generic(Plugin):
   @app_commands.command(description="Take a risky action in hope of getting boosts!")
   @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))
   async def slotmachine(self, interaction: discord.Interaction):
-    user_balance = db.fetch('economy', 'coins', interaction.user.id)
+    user_balance = db.users.get( 'coins', interaction.user.id)
     if user_balance < SLOT_MACHINE_PRICE:
       await interaction.response.send_message(
         f"You're too poor to play the slot machine. Save up at least <:coins:1172819933093179443> ` {SLOT_MACHINE_PRICE} Coins ` to get started.",

@@ -1,275 +1,179 @@
-import json
 import sqlite3
 from typing import List, Union
 
-class Row:
+conn = sqlite3.connect("vix.db")
+cursor = conn.cursor()
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS users (
+  user_id INTEGER PRIMARY KEY,
+  coins INTEGER DEFAULT 0 CHECK (coins >= 0),
+  xp INTEGER DEFAULT 0 CHECK (xp >= 0),
+  rank INTEGER DEFAULT 0 CHECK (rank >= 0)
+);
+''')
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS items (
+  item_id INTEGER,
+  user_id INTEGER,
+  amount INTEGER DEFAULT 0 CHECK (amount >= 0),
+  timestamp INTEGER DEFAULT 0,
+  PRIMARY KEY (item_id, user_id),
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+''')
+
+class BaseItem:
+  def __init__(self, item_id: int,user_id:int, amount: int, timestamp: int = 0):
+    self.id = item_id
+    self.amount = amount
+    self.timestamp = timestamp
+  def __repr__(self) -> str:
+    return f"BaseItem | ID {self.item_id} | Amount {self.amount} | Timestamp {self.timestamp}"
+  
+class BaseUser:
+  def __init__(self, user_id: int, coins: int, xp: int, rank: int):
+    self.id = user_id
+    self.coins = coins
+    self.xp = xp
+    self.rank = rank
+  def __repr__(self) -> str:
+    return f"BaseUser | ID {self.user_id} | Coins {self.coins} | XP {self.xp} | Rank {self.rank}"
+
+class Users:
+  def all(self,user_id: int) -> BaseUser | None:
     """
-    Base class for all `Row` objects serialized into a `Column`.
+    Returns a list of all fields in a user's row
     """
-
-    def __init__(self, id: int, values: List[int]) -> None:
-        self.id = id
-        self.values = values
-
-    def __eq__(self, other: 'Row') -> bool:
-        return self.id == other.id
-
-    def __repr__(self) -> str:
-        return f"Row {self.id} {self.values}"
-
-    @staticmethod
-    def unload(data: str) -> List['Row']:
-        """
-        Unpacks the JSON string from the database into a list of `Row` objects.
-
-        Args:
-            data (str): JSON string containing the serialized `Row` data.
-
-        Returns:
-            List[Row]: A list of `Row` objects.
-        """
-        return [Row(item[0], item[1]) for item in json.loads(data)]
-
-    @staticmethod
-    def pack(data: List['Row']) -> str:
-        """
-        Packs the list of `Row` objects into a JSON string for database storage.
-
-        Args:
-            data (List[Row]): A list of `Row` objects to be serialized.
-
-        Returns:
-            str: A JSON string representing the serialized `Row` objects.
-        """
-        return json.dumps([[item.id, item.values] for item in data])
-
-
-class Column:
+    cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)) 
+    result = cursor.fetchone()
+    return BaseUser(*result) if result else None
+  
+  def get(self,user_id: int, field: str) -> int | str | None:
+    cursor.execute(f"SELECT {field} FROM users WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    return result[0] if result else None
+  
+  def set(self, field: str,user_id: int, value: int | str) -> None:
     """
-    Base class for all columns in the database.
-    Each column represents a TEXT field in the database table.
+    Sets a field in a user's row, if the field does not exist it will be created.
     """
+    cursor.execute(f'''
+    INSERT INTO users (user_id, {field})
+    VALUES (?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET {field} = excluded.{field}
+    ''', (user_id, value))
+    conn.commit()
 
-    def __init__(self):
-        self.table = type(self).__name__.lower()
+  def put(self,field: str,user_id: int, step: int) -> None:
+    """
+    Adjusts a field in a user's row, if the field does not exist it will be created.
+    This does not overwrite the field, it adds the step to the current value
+    """
+    if not isinstance(step, int):
+      raise TypeError("Step must be an integer")
+    cursor.execute(f'''
+    INSERT INTO users (user_id, {field})
+    VALUES (?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET {field} = {field} + excluded.{field}
+    ''', (user_id, step))
+    conn.commit()
 
-    def put(self, user_id: int, row_id: int, value: int = 0, key: int = 0) -> None:
-        """
-        Put a value into a column.
+class Items:
+  def all(self,user_id: int) -> List[BaseItem]:
+    """
+    Returns a list of all items in a user's items
+    """
+    cursor.execute("SELECT * FROM items WHERE user_id = ?", (user_id,))
+    result = cursor.fetchall()
+    return [BaseItem(*row) for row in result]
 
-        Args:
-            user_id (int): The ID of the user.
-            row_id (int): The ID of the row.
-            value (int, optional): The value to put. Defaults to 0.
-            key (int, optional): The index in the row values to update. Defaults to 0.
-        """
-        result = fetch(self.table, "data", user_id)
-        if result == 0:
-            column = [Row(row_id, [value])]
-        else:
-            column = Row.unload(result)
-            for row in column:
-                if row.id == row_id:
-                    row.values[key] = value
-                    break
-            else:
-                column.append(Row(row_id, [value]))
-        store(self.table, 'data', user_id, Row.pack(column))
+  def get(self,user_id: int, item_id: int) -> int | str | None:
+    """
+    Gets the amount of an item in a user's items
+    """
+    cursor.execute("SELECT amount FROM items WHERE user_id = ? AND item_id = ?", (user_id, item_id))
+    result = cursor.fetchone()
+    return result[0] if result else None
+  
+  def set(self,user_id: int, item_id: int, amount: int) -> None:
+    """
+    Sets the amount of an item in a user's items, if the item does not exist it will be created.
+    """
+    cursor.execute(f'''
+    INSERT INTO items (user_id, item_id, amount)
+    VALUES (?, ?, ?)
+    ON CONFLICT(user_id, item_id) DO UPDATE SET amount = excluded.amount
+    ''', (user_id, item_id, amount))
+    conn.commit()
 
-    def get(self, user_id: int, row_id: int = None, key: int = 0) -> int:
-        """
-        Get a value from a column.
+  def put(self,user_id: int, item_id: int, step: int) -> None:
+    '''
+    Adjusts the amount of an item in a user's items, if the item does not exist it will be created.
+    This does not overwrite the amount, it adds the step to the current amount
+    '''
+    cursor.execute(f'''
+    INSERT INTO items (user_id, item_id, amount)
+    VALUES (?, ?, ?)
+    ON CONFLICT(user_id, item_id) DO UPDATE SET amount = amount + excluded.amount
+    ''', (user_id, item_id, step))
+    conn.commit()
 
-        Args:
-            user_id (int): The ID of the user.
-            row_id (int, optional): The ID of the row. Defaults to None.
-            key (int, optional): The index in the row values to retrieve. Defaults to 0.
+def modify(query: str, *args) -> None:
+  '''
+  Modifies the database with a custom query, commiting the changes
+  '''
+  cursor.execute(query, args)
+  conn.commit()
 
-        Returns:
-            int: The value at the specified position, or 0 if not found.
-        """
-        result = fetch(self.table, 'data', user_id)
-        if result != 0:
-            items = Row.unload(result)
-            if row_id is not None:
-                return next((item.values[key] for item in items if item.id == row_id), 0)
-        return 0
+def fetch(query: str, *args) -> str | int | List[int,str] | None:
+  '''
+  Fetches data from the database with a custom query
+  '''
+  cursor.execute(query, args)
+  result = cursor.fetchone()
+  return result[0] if result else None
+  
+def wipe(user_id: int) -> None:
+  '''
+  Wipes a user from the database, usually performed when a user leaves the server
+  '''
+  cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+  cursor.execute("DELETE FROM items WHERE user_id = ?", (user_id,))
+  conn.commit()
 
-    def getall(self, user_id: int) -> List[Row]:
-        """
-        Get all values from a column.
-
-        Args:
-            user_id (int): The ID of the user.
-
-        Returns:
-            List[Row]: A list of `Row` objects.
-        """
-        result = fetch(self.table, 'data', user_id)
-        if result != 0:
-            return Row.unload(result)
-        return []
-
-    def increase(self, user_id: int, row_id: int, step: int = 1, key: int = 0) -> None:
-        """
-        Increase a value in a column row.
-
-        Args:
-            user_id (int): The ID of the user.
-            row_id (int): The ID of the row.
-            step (int, optional): The increment step. Defaults to 1.
-            key (int, optional): The index in the row values to increase. Defaults to 0.
-        """
-        value = self.get(user_id, row_id, key)
-        self.put(user_id, row_id, value + step, key)
-
-    def decrease(self, user_id: int, row_id: int, step: int = 1, key: int = 0) -> None:
-        """
-        Decrease a value in a column row.
-
-        Args:
-            user_id (int): The ID of the user.
-            row_id (int): The ID of the row.
-            step (int, optional): The decrement step. Defaults to 1.
-            key (int, optional): The index in the row values to decrease. Defaults to 0.
-        """
-        value = self.get(user_id, row_id, key)
-        self.put(user_id, row_id, value - step, key)
-
-
-# Columns which inherit from the Column class
-class Items(Column):
-    def __init__(self):
-        super().__init__()
-
-class Mails(Column):
-    def __init__(self):
-        super().__init__()
-
-class Usage(Column):
-    def __init__(self):
-        super().__init__()
-
+users = Users()
 items = Items()
-mails = Mails()
-usage = Usage()
-
-# SQL connection & cursor
-conn = sqlite3.connect('vix.db')
-c = conn.cursor()
-
-# Initialize the database tables
-c.execute('''CREATE TABLE IF NOT EXISTS economy (user_id INTEGER PRIMARY KEY, coins INTEGER, rank INTEGER, xp INTEGER);''')
-for table in Column.__subclasses__():
-    c.execute(f'''CREATE TABLE IF NOT EXISTS {table.__name__.lower()} (user_id INTEGER PRIMARY KEY, data TEXT);''')
-conn.commit()
-
-# SQL functions
-def init(value: int, id: int) -> None:
-    """
-    Initialize a user with a starting value.
-
-    Args:
-        value (int): The initial value (e.g., coins).
-        id (int): The user ID.
-    """
-    c.execute('''INSERT OR IGNORE INTO economy (user_id, coins) VALUES (?, ?);''', (id, value))
-    conn.commit()
-
-def tablehasdata(table: str) -> bool:
-    """
-    Check if a table has any data.
-
-    Args:
-        table (str): The name of the table.
-
-    Returns:
-        bool: True if the table has data, False otherwise.
-    """
-    c.execute(f'SELECT * FROM {table}')
-    return c.fetchone() is not None
-
-def deletedata(table: str) -> None:
-    """
-    Delete all data from a table.
-
-    Args:
-        table (str): The name of the table.
-
-    Raises:
-        ValueError: If the table name is invalid.
-    """
-    if not table.isidentifier():
-        raise ValueError(f"Invalid table name: {table}")
-    c.execute(f'DELETE FROM {table}')
-    conn.commit()
-
-def fetch(table: str, value: str = None, user_id: int = None) -> Union[int, str, list]:
-    """
-    Fetch data from a table.
-
-    Args:
-        table (str): The name of the table.
-        value (str, optional): The specific column value to fetch. Defaults to None.
-        user_id (int, optional): The user ID to filter by. Defaults to None.
-
-    Returns:
-        Union[int, str, list]: The fetched data.
-    """
-    query = f"SELECT {value} FROM {table}" if value else f"SELECT * FROM {table}"
-    query += f" WHERE user_id = ?" if user_id else ""
-    c.execute(query, (user_id,) if user_id else ())
-    if value and user_id:
-        fromdb = c.fetchone()
-        return fromdb[0] if fromdb and fromdb[0] else 0
-    return c.fetchall()
-
-def store(table: str, value: str, user_id: int, data: Union[int, str]) -> None:
-    """
-    Store data in a table.
-
-    Args:
-        table (str): The name of the table.
-        value (str): The column to store the data in.
-        user_id (int): The user ID.
-        data (Union[int, str]): The data to store.
-    """
-    c.execute(f'''INSERT OR IGNORE INTO {table} (user_id, {value}) VALUES (?, ?)''', (user_id, 1))
-    c.execute(f"""UPDATE {table} SET {value} = ? WHERE user_id = ?""", (data, user_id))
-    conn.commit()
 
 def exchange(target: int, sender: int, value: int) -> None:
-    """
-    Exchange coins between two users.
-
-    Args:
-        target (int): The ID of the target user.
-        sender (int): The ID of the sender user.
-        value (int): The amount of coins to exchange.
-
-    Raises:
-        Exception: If the sender has insufficient funds.
-    """
-    sender_balance = fetch('economy', 'coins', sender)
-    if sender_balance < value:
-        raise Exception('Insufficient funds')
-    store('economy', 'coins', sender, sender_balance - value)
-    target_balance = fetch('economy', 'coins', target)
-    store('economy', 'coins', target, target_balance + value)
+  '''
+  Exchange coins between two users
+  '''
+  sender_balance = users.get(sender, 'coins')
+  if sender_balance < value:
+    raise Exception('Insufficient funds')
+  users.put(sender, 'coins', -value)
+  users.put(target, 'coins', value)
 
 def board(value: str, count: int = None) -> list:
-    """
-    List the top users by a certain value.
+  """
+  List the top users by a certain value.
+  """
+  query = f"SELECT user_id, {value} FROM users ORDER BY {value} DESC"
+  if count:
+    query += f" LIMIT {count}"
+  cursor.execute(query)
+  return cursor.fetchall()
 
-    Args:
-        value (str): The value to sort by.
-        count (int, optional): The number of top users to list. Defaults to None.
-
-    Returns:
-        list: A list of tuples containing user ID and the specified value.
-    """
-    query = f"SELECT user_id, {value} FROM economy ORDER BY {value} DESC"
-    if count is not None:
-        query += f" LIMIT {count}"
-    c.execute(query)
-    return c.fetchall()
+if __name__ == "__main__":
+  users.set(1, 'coins', 100)
+  print(users.get(1, 'coins'))
+  users.put(1, 'coins', 100)
+  print(users.get(1, 'coins'))
+  items.set(1, 1, 100)
+  print(items.get(1, 1))
+  users.put(1, 'xp', 100)
+  print(users.all(1))
+  
+  conn.close()

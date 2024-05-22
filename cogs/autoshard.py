@@ -101,7 +101,7 @@ class Events(Plugin):
                     duration = datetime.timedelta(hours=1)
                     await message.author.timeout(duration)
                     db.exchange(self.bot.user.id, message.author.id,
-                                db.fetch('economy', 'coins', message.author.id) // 2)
+                                db.users.get('coins', message.author.id) // 2)
                     await broadcast(message=message, title='Heavy message spam punishment',
                                     content=f"**Now you've done it, {message.author.mention}. Half your coins. Gone.**\n\nThis happened due to you breaking an important rule twice. Do not spam messages in order to get coins. You have been timed out for an hour.\n*Your XP and your Level remain the same. Create a ticket <#{config.TICKET_CHANNEL}> for further questions.*")
                 else:
@@ -141,9 +141,9 @@ class Events(Plugin):
             coins_new = content_length // 8
         xp_new = content_length // 4
         user_id = message.author.id
-        user_rank = db.fetch("economy", "rank", user_id)
-        user_xp = db.fetch("economy", "xp", user_id)
-        bank_balance = db.fetch('economy', 'coins', self.bot.user.id)
+        user_rank = db.users.get('rank',user_id)
+        user_xp = db.users.get('xp',user_id)
+        bank_balance = db.users.get('coins',self.bot.user.id)
         rank_new = 0
         if user_rank != 0:
             if user_xp + xp_new >= (user_rank) * 120:
@@ -168,8 +168,8 @@ class Events(Plugin):
                     f"**:tada: Congrats {message.author.mention}, You just reached <:level:1172820830812643389> `` Rank {user_rank + rank_new} `` !\n\nTIP:** *You can exchange coins earned by chatting in <#{config.SHOP_CHANNEL}>.\nEnjoy your stay!*")
                 user_xp = 0
                 xp_new = xp_new - 15
-        db.store("economy", "rank", user_id, user_rank + rank_new)
-        db.store("economy", "xp", user_id, xp_new + user_xp)
+        db.users.put('rank',user_id,user_rank + rank_new)
+        db.users.put("xp",user_id,xp_new + user_xp)
         if bank_balance < coins_new:
             if not bank_balance == 0:
                 db.exchange(user_id, self.bot.user.id, bank_balance)
@@ -183,8 +183,8 @@ class Events(Plugin):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        current = db.fetch("economy", "coins", self.bot.user.id)
-        set("economy", "coins", self.bot.user.id, current + 500)
+        current = db.users.get('coins',self.bot.user.id)
+        db.users.set('coins',self.bot.user.id, current + 500)
     
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):

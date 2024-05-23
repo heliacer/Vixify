@@ -7,11 +7,13 @@ from discord.ext import commands
 from core.plugins import Plugin
 from typing import List
 from core.items import getItemsByType,getItemByID,getNextItemPrice
+from core.emojis import *
+
 
 EMOJIS = {
-  "roles" : "<:features:1178989659976642581>",
-  "commands" : "<:dev:1178993359738642512>",
-  "utilities" : "<:dimension:1178990567812771890>"
+  "roles" : FEATURES_EMOJI,
+  "commands" : DEV_EMOJI,
+  "utilities" : DIMENSION_EMOJI
 }
 
 CONTENT = {
@@ -50,11 +52,11 @@ async def loadpage(interaction: discord.Interaction,page: int,balance: int,sale_
   # Add the items of display to the embed
   for item in itemDisplay:
     if item.id in user_roles or db.items.get(interaction.user.id,item.id) > 0 if item.ownstack == 1 else False:
-      balance_format = f"<:badge:1178949476308766771> `` Bought ``" 
+      balance_format = f"{BADGE_EMOJI}`` Bought ``" 
     elif item.price * sale_percent <= balance:
-      balance_format = f"<:coins:1172819933093179443> `` {item.price * sale_percent:,.0f} Coins ``" 
+      balance_format = f"{COINS_EMOJI} `` {item.price * sale_percent:,.0f} Coins ``" 
     elif item.price * sale_percent > balance:
-      balance_format = f"<:disabledcoins:1178939795288891432> *`` {item.price* sale_percent:,.0f} Coins ``*" 
+      balance_format = f"{DISABLEDCOINS_EMOJI} *`` {item.price* sale_percent:,.0f} Coins ``*" 
     page_embed.add_field(name=f"{item.emoji} {item.name}",value=f"*{item.description}*\n{balance_format}",inline=True)
   page_embed.set_footer(text=f"Page {page}/{(len(CONTENT[section])+5)//6}")
   embeds.append(page_embed)
@@ -63,20 +65,20 @@ async def loadpage(interaction: discord.Interaction,page: int,balance: int,sale_
   # Check if there are any items left to buy / bank is undercapitalized / user has enough coins
   next = getNextItemPrice(interaction.user,sale_percent,CONTENT[section])
   if next == 0:
-    transaction_embed.add_field(name="<:finishline:1175568414950031471> You've reached the end!",value="**There is nothing left to buy in this section.\nAsk <@955187087911555152> to add more!** ")
+    transaction_embed.add_field(name=f"{FINISHLINE_EMOJI} You've reached the end!",value="**There is nothing left to buy in this section.\nAsk <@955187087911555152> to add more!** ")
   elif next <= balance:
-    transaction_embed.add_field(name="<:selection:1172609449593143316> Selected", value=selectionvalue)
-    transaction_embed.add_field(name="<:circular:1172609451023405098> Transaction", value=f"__Current Balance__ : `` {balance:,} Coins ``\n__Total Price__ : `` {price:,} Coins ``\n*You'll be left with `` {balance-price:,} Coins ``*")
+    transaction_embed.add_field(name=f"{SELECTION_EMOJI} Selected", value=selectionvalue)
+    transaction_embed.add_field(name=f"{CIRCULAR_EMOJI} Transaction", value=f"__Current Balance__ : `` {balance:,} Coins ``\n__Total Price__ : `` {price:,} Coins ``\n*You'll be left with `` {balance-price:,} Coins ``*")
     if sale_percent < 1:
       if sale_percent == 0.5:
-        sale_embed = discord.Embed(title='<:flashsale:1200119986568581160> BANK 50% SALE',description='**THE BANK IS INSOLVENT. GO BUY NOW.\nALL ITEMS ON 50% SALE!!**')
+        sale_embed = discord.Embed(title=f'{FLASHSALE_EMOJI} BANK 50% SALE',description='**THE BANK IS INSOLVENT. GO BUY NOW.\nALL ITEMS ON 50% SALE!!**')
       else:
-        sale_embed = discord.Embed(title='<:flashsale:1200119986568581160> BANK 75% SALE',description='**As the Bank is Undercapitalized, Every item is on 75% Sale!\nGo buy now before the Sale goes away!**')
+        sale_embed = discord.Embed(title=f'{FLASHSALE_EMOJI} BANK 75% SALE',description='**As the Bank is Undercapitalized, Every item is on 75% Sale!\nGo buy now before the Sale goes away!**')
       sale_embed.set_thumbnail(url='https://i.ibb.co/0KxjgjC/box.png')
       embeds.append(sale_embed)
   else:
     transaction_embed.description = "**Save some more coins up for the next item by chatting a bit!**\nCheck your balance with </coins:1172931104890703984>,\nafter gathering enough come back!"
-    transaction_embed.title = "<:fireup:1175569234982604870> Aw, not quite yet!" 
+    transaction_embed.title = f"{FIREUP_EMOJI} Aw, not quite yet!" 
   embeds.append(transaction_embed)
 
   # Send the embeds
@@ -94,10 +96,10 @@ class MainMenu(ui.View):
     self.sale_percent = sale_percent
     self.selection = selection or []
 
-    buttonrmitem = ui.Button(emoji="<:remove:1175005705422512218>",label="Remove last",custom_id="view.RemoveItem",row=1)
-    buttoncheckout = ui.Button(emoji="<:checkout:1175007951669436446> ",label="Checkout",custom_id="view.ButtonCheckout",row=1)
-    buttonleft = ui.Button(emoji="<:arrowleft:1173619127106142239> ",custom_id="view.ArrowLeft",disabled=left_disabled,row=1)
-    buttonright = ui.Button(emoji="<:arrowright:1173619195624308776> ",custom_id="view.ArrowRight",disabled=right_disabled,row=1)
+    buttonrmitem = ui.Button(emoji=REMOVE_EMOJI,label="Remove last",custom_id="view.RemoveItem",row=1)
+    buttoncheckout = ui.Button(emoji=CHECKOUT_EMOJI,label="Checkout",custom_id="view.ButtonCheckout",row=1)
+    buttonleft = ui.Button(emoji=ARROWLEFT_EMOJI,custom_id="view.ArrowLeft",disabled=left_disabled,row=1)
+    buttonright = ui.Button(emoji=ARROWRIGHT_EMOJI,custom_id="view.ArrowRight",disabled=right_disabled,row=1)
     items = list(CONTENT[self.section])[6*(page-1):6*page]
     user_item_ids = [role.id for role in parent.user.roles]
     user_item_ids.extend(item.id for item in db.items.all(parent.user.id) if getItemByID(item.id).ownstack == 1)
@@ -144,8 +146,8 @@ class MainMenu(ui.View):
         selection_counts[name] += 1
     selection_lines = [f'{count}x {name}' for name, count in selection_counts.items()]
     selectionvalue = '\n'.join(selection_lines)
-    checkout_embed.add_field(name="<:selection:1172609449593143316> Selected Items", value=selectionvalue)
-    checkout_embed.add_field(name="<:circular:1172609451023405098> Transaction", value=f"__Current Balance__ : `` {self.balance} Coins ``\n__Total Price__ : `` {self.price} Coins ``\n*You'll be left with `` {self.balance-self.price} Coins ``*")
+    checkout_embed.add_field(name=f"{SELECTION_EMOJI} Selected Items", value=selectionvalue)
+    checkout_embed.add_field(name=f"{CIRCULAR_EMOJI} Transaction", value=f"__Current Balance__ : `` {self.balance} Coins ``\n__Total Price__ : `` {self.price} Coins ``\n*You'll be left with `` {self.balance-self.price} Coins ``*")
     await self.parent.edit_original_response(embed=checkout_embed,view=CheckoutButtons(self.parent,self.page,self.balance,self.sale_percent,self.section,self.selection,self.price))
 
   async def itemselect(self,interaction: discord.Interaction):
@@ -156,7 +158,7 @@ class MainMenu(ui.View):
     await loadpage(self.parent, self.page, self.balance,self.sale_percent,self.section,self.selection,self.price+price)
 
 class CheckoutButtons(ui.View):
-  def __init__(self,parent,page,balance,sale_percent,section,selection,price):
+  def __init__(self,parent: discord.Interaction,page: int,balance: int,sale_percent: int ,section: str,selection: List[int],price: int):
     super().__init__(timeout=None)
     self.parent = parent
     self.balance = balance
@@ -166,10 +168,10 @@ class CheckoutButtons(ui.View):
     self.section = section
     self.sale_percent = sale_percent
 
-  @ui.button(label="Confirm",custom_id="View.ConfirmCheckout",emoji="<:confirm:1175396326272409670>")
+  @ui.button(label="Confirm",custom_id="View.ConfirmCheckout",emoji=CONFIRM_EMOJI)
   async def confirmcheckout(self,interaction: discord.Interaction,button: ui.Button):
     await interaction.response.defer()
-    embed= discord.Embed(description=f"**<:partyhorn:1175408062782263397> {self.section.capitalize()} added successfully!**")
+    embed= discord.Embed(description=f"**{PARTYHORN_EMOJI} {self.section.capitalize()} added successfully!**")
     db.exchange(interaction.client.user.id,interaction.user.id,self.price)
     for item_id in self.selection:
       role = interaction.guild.get_role(item_id)
@@ -179,7 +181,7 @@ class CheckoutButtons(ui.View):
         db.items.increment(interaction.user.id,item_id)
     await self.parent.edit_original_response(embed=embed,view=None)
 
-  @ui.button(label="Go back",custom_id="View.CancelCheckout",emoji="<:undo:1175396297583366155>")
+  @ui.button(label="Go back",custom_id="View.CancelCheckout",emoji=UNDO_EMOJI)
   async def cancelcheckout(self,interaction: discord.Interaction,button: ui.Button):
     await interaction.response.defer()
     await loadpage(self.parent,self.page,self.balance,self.sale_percent,self.section,self.selection,self.price)
@@ -206,16 +208,16 @@ class ShopButtons(ui.View):
   def __init__(self):
     super().__init__(timeout=None)
 
-  @ui.button(label="Open Shop", custom_id="View.viewAllFeaturesButton", emoji="<:cart:1172610055749783672>")
+  @ui.button(label="Open Shop", custom_id="View.viewAllFeaturesButton", emoji=CART_EMOJI)
   async def viewAllFeaturesButton(self, interaction: discord.Interaction, button: ui.Button):
-    embed = discord.Embed(description="**<:searching:1172609453686800464> What would you like to buy?**")
+    embed = discord.Embed(description=f"**{SEARCHING_EMOJI} What would you like to buy?**")
     await interaction.response.send_message(embed=embed,ephemeral=True,delete_after=120,view=SectionSelect(interaction))
 
-  @ui.button(label="Rewards",custom_id="View.RewardsButton",emoji="<:passion:1179088197842649180>",disabled=True)
+  @ui.button(label="Rewards",custom_id="View.RewardsButton",emoji=PASSION_EMOJI,disabled=True)
   async def RewardsButton(self,interaction: discord.Interaction,button: ui.Button):
     await interaction.response.send_message("work in progress!",ephemeral=True,delete_after=120)
 
-  @ui.button(label="Quests",custom_id="View.QuestsButton",emoji="<:progresschart:1178590023759695952>",disabled=True)
+  @ui.button(label="Quests",custom_id="View.QuestsButton",emoji=PROGRESSCHART_EMOJI,disabled=True)
   async def QuestsButton(self,interaction: discord.Interaction,button: ui.Button):
     await interaction.response.send_message("work in progress!",ephemeral=True,delete_after=120)
 
@@ -231,8 +233,8 @@ class ShopReady(Plugin):
     channel = self.bot.get_channel(config.SHOP_CHANNEL)
     if channel:
       embed = discord.Embed(
-        title="<:level:1172820830812643389> Level Shop",
-        description="**Exchange your coins for exclusive server features!**\nType </coins:1172931104890703984> to view your coin balance",
+        title=f"{LEVEL_EMOJI} Level Shop",
+        description="**Exchange your coins for exclusive server features!**\nType /coins to view your coin balance",
         color=0x2b2d31)
       embed.set_thumbnail(url="https://i.ibb.co/4Zr15Gv/invest.png")
       messages = []

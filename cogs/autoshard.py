@@ -2,12 +2,13 @@ import discord
 import config
 import db
 from discord.ext import commands
-from core.misc import messages, warnings, has_penalty, ranks
-from core.misc import broadcast, calc_cooldown, calc_message, stripCodeBlocks, isauthor, format_seconds
 import datetime
 from discord import app_commands
 import traceback
+from core.misc import messages, warnings, has_penalty, ranks
+from core.misc import broadcast, calc_cooldown, calc_message, stripCodeBlocks, isauthor, format_seconds
 from core.plugins import Plugin
+from core.emojis import *
 import io
 
 class ConfirmDeclineButtons(discord.ui.View):
@@ -15,19 +16,19 @@ class ConfirmDeclineButtons(discord.ui.View):
     super().__init__(timeout=None)
     self.original_message = original_message
 
-  @discord.ui.button(label="Accept",emoji='<:confirm:1175396326272409670>')
+  @discord.ui.button(label="Accept",emoji=CONFIRM_EMOJI)
   async def accept(self,interaction: discord.Interaction,button: discord.ui.Button):
     await interaction.response.edit_message(view=None)
-    await broadcast(message=self.original_message,content=f"<:partyhorn:1175408062782263397> Your Appeal was accepted by {interaction.user.mention}. Happy you're back!\nPlease excuse any mistakes we have made. We try to constantly improve.",thumb_url='https://media1.tenor.com/m/KhtKI4EkuR0AAAAd/seal-silly.gif')
+    await broadcast(message=self.original_message,content=f"{PARTYHORN_EMOJI} Your Appeal was accepted by {interaction.user.mention}. Happy you're back!\nPlease excuse any mistakes we have made. We try to constantly improve.",thumb_url='https://media1.tenor.com/m/KhtKI4EkuR0AAAAd/seal-silly.gif')
     await self.original_message.author.timeout(None)
     await self.original_message.channel.send(f"Recovered message by {self.original_message.author.mention}:\n\n{self.original_message.content}")
-    await interaction.channel.send(f'<:passion:1179088197842649180> Thanks for your feedback and hard work, {interaction.user.mention}')
+    await interaction.channel.send(f'{PASSION_EMOJI} Thanks for your feedback and hard work, {interaction.user.mention}')
 
-  @discord.ui.button(label="Decline",emoji='<:remove:1175005705422512218>')
+  @discord.ui.button(label="Decline",emoji=REMOVE_EMOJI)
   async def decline(self,interaction: discord.Interaction,button: discord.ui.Button):
     await interaction.response.edit_message(view=None)
-    await broadcast(message=self.original_message,content=f"<:remove:1175005705422512218> Your Appeal was declined by {interaction.user.mention}. We're sorry.",thumb_url='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVdxamPXtGCZdAwZSGvZIz95afqYpIEYYLiQNA-v5WZwkXTirx')
-    await interaction.channel.send(f'<:passion:1179088197842649180> Thanks for your feedback and hard work, {interaction.user.mention}')
+    await broadcast(message=self.original_message,content=f"{REMOVE_EMOJI} Your Appeal was declined by {interaction.user.mention}. We're sorry.",thumb_url='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVdxamPXtGCZdAwZSGvZIz95afqYpIEYYLiQNA-v5WZwkXTirx')
+    await interaction.channel.send(f'{PASSION_EMOJI} Thanks for your feedback and hard work, {interaction.user.mention}')
 
 class AppealButton(discord.ui.View):
   def __init__(self,channel: discord.TextChannel,original_message: discord.Message):
@@ -35,13 +36,13 @@ class AppealButton(discord.ui.View):
     self.channel = channel
     self.original_message = original_message
 
-  @discord.ui.button(label="Appeal",emoji='<:send:1215938286204489809>')
+  @discord.ui.button(label="Appeal",emoji=SEND_EMOJI)
   async def appeal(self,interaction: discord.Interaction,button: discord.ui.Button):
     update_embed = discord.Embed(title='Long Message spam appeal',description=f'{self.original_message.author.mention} sent a message in {self.original_message.channel.mention} and would like to appeal:\n\n>>> {self.original_message.content}')
     await self.channel.send(embed=update_embed,view=ConfirmDeclineButtons(self.original_message))
     button.disabled = True
     await interaction.response.edit_message(view=self)
-    await interaction.channel.send('<:confirm:1175396326272409670> Appeal sent. Please wait until it has been revieved.')
+    await interaction.channel.send(f'{CONFIRM_EMOJI} Appeal sent. Please wait until it has been revieved.')
 
 
 
@@ -56,7 +57,7 @@ class Events(Plugin):
         messages[member.id] = []
         warnings[member.id] = []
         has_penalty[member.id] = False
-        await ctx.send(f'<:confirm:1175396326272409670> Heat cleared for {member.mention}')
+        await ctx.send(f'{CONFIRM_EMOJI} Heat cleared for {member.mention}')
         
     @commands.command(name=f"ping")
     async def ping(self, ctx: commands.Context):
@@ -159,13 +160,13 @@ class Events(Plugin):
                     xp_new = xp_new - ((user_rank) * 120 - 120)
                     user_xp = 0
                 await message.channel.send(
-                    f"**Congrats {message.author.mention}, You just reached <:level:1172820830812643389> `` Rank {user_rank + rank_new} ``{msg}**",
+                    f"**Congrats {message.author.mention}, You just reached {LEVEL_EMOJI} `` Rank {user_rank + rank_new} ``{msg}**",
                     allowed_mentions=None)
         else:
             if user_xp + xp_new > 15:
                 rank_new += 1
                 await message.channel.send(
-                    f"**:tada: Congrats {message.author.mention}, You just reached <:level:1172820830812643389> `` Rank {user_rank + rank_new} `` !\n\nTIP:** *You can exchange coins earned by chatting in <#{config.SHOP_CHANNEL}>.\nEnjoy your stay!*")
+                    f"**:tada: Congrats {message.author.mention}, You just reached {LEVEL_EMOJI} `` Rank {user_rank + rank_new} `` !\n\nTIP:** *You can exchange coins earned by chatting in <#{config.SHOP_CHANNEL}>.\nEnjoy your stay!*")
                 user_xp = 0
                 xp_new = xp_new - 15
         db.users.increment('rank',user_id,rank_new)
@@ -190,30 +191,30 @@ class Events(Plugin):
         if isinstance(error, (commands.CheckFailure, commands.CommandNotFound)):
             return
         if isinstance(error, commands.CommandOnCooldown):
-            embed = discord.Embed(description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')
+            embed = discord.Embed(description=f'***{SANDCLOCK_EMOJI} This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')
             await ctx.send(embed=embed, ephemeral=True)
         elif isinstance(error, (commands.MissingRequiredArgument, commands.MemberNotFound, commands.BadArgument, commands.MissingPermissions, commands.BotMissingPermissions)):
-            embed = discord.Embed(description=f'**<:err:1203262608929722480> {error}**')
+            embed = discord.Embed(description=f'**{ERR_EMOJI} {error}**')
             await ctx.send(embed=embed)
         elif isinstance(error, commands.CommandError):
-            embed = discord.Embed(description=f'**<:err:1203262608929722480> {error}**')
+            embed = discord.Embed(description=f'**{ERR_EMOJI} {error}**')
             await ctx.send(embed=embed)
         else:
             exception = traceback.format_exception(type(error), error, error.__traceback__)
             file = discord.File(filename="error.log", fp=io.BytesIO(''.join(exception).encode()))
-            ErrorEmbed = discord.Embed(description=f'**<:err:1203262608929722480> There was an internal error.**')
+            ErrorEmbed = discord.Embed(description=f'**{ERR_EMOJI} There was an internal error.**')
             ErrorEmbed.set_footer(text=str(error))
             await ctx.send(embed=ErrorEmbed, file=file)
 
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.CommandOnCooldown):
         CooldownEmbed = discord.Embed(
-            description=f'***<:sandclock:1203261564291911680> This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')
+            description=f'***{SANDCLOCK_EMOJI} This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')
         await interaction.response.send_message(embed=CooldownEmbed, ephemeral=True)
     else:
         exception = traceback.format_exception(type(error), error, error.__traceback__)
         file = discord.File(filename="error.log", fp=io.BytesIO(''.join(exception).encode()))
-        ErrorEmbed = discord.Embed(description=f'**<:err:1203262608929722480> There was an internal error.**')
+        ErrorEmbed = discord.Embed(description=f'**{ERR_EMOJI} There was an internal error.**')
         ErrorEmbed.set_footer(text=str(error))
         await interaction.response.send_message(embed=ErrorEmbed, file=file)
 

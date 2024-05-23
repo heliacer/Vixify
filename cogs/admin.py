@@ -3,8 +3,9 @@ import discord
 import db
 import config
 from core.plugins import Plugin
+from core.emojis import *
 
-CONFIRM_MESSAGE = "**<:confirm:1175396326272409670> Task executed.**"
+CONFIRM_MESSAGE = f"**{CONFIRM_EMOJI} Task executed.**"
 CONFIRM_EMBED = discord.Embed(description=CONFIRM_MESSAGE)
 
 class Admin(Plugin):
@@ -15,7 +16,7 @@ class Admin(Plugin):
       db.commit(f'DELETE * FROM {table}')
       message = CONFIRM_MESSAGE
     else:
-      message = f"**<:remove:1175005705422512218> Table has data. Use `force` to clear table.**"
+      message = f"**{REMOVE_EMOJI} Table has data. Use `force` to clear table.**"
     embed = discord.Embed(description=message)
     await ctx.send(embed=embed, delete_after=10)
 
@@ -37,7 +38,7 @@ class Admin(Plugin):
   @commands.has_permissions(administrator=True)
   async def items(self, ctx: commands.Context):
       if ctx.invoked_subcommand is None:
-        embed = "**<:questionable:1175393148294414347> Item task does not exist.**"
+        embed = f"**{QUESTION_EMOJI} Item task does not exist.**"
         await ctx.send(embed=embed, delete_after=10)
 
   @items.command()

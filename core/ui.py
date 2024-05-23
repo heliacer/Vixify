@@ -7,6 +7,7 @@ import random
 from typing import List  
 from core.misc import winchance
 from collections import Counter
+from core.emojis import *
 from core.items import getRandomItemByRarity,getItems,getItemByID,getItemBoard,Item
 
 LOOTBOX_PRICE = 50
@@ -23,11 +24,11 @@ class LootboxUI(ui.View):
     self.query = [item for item in getItems() if item.id not in owned and item.type not in ['role','command']]
 
     if next:
-      openButton = ui.Button(label='Open lootbox', emoji='<:checkout:1175007951669436446>', style=discord.ButtonStyle.primary)
+      openButton = ui.Button(label='Open lootbox', emoji=CHECKOUT_EMOJI, style=discord.ButtonStyle.primary)
       openButton.callback = self.open
       self.add_item(openButton)
     if self.index > 1:
-      claimButton = ui.Button(label='Claim All', emoji='<:features:1178989659976642581>', style=discord.ButtonStyle.gray)
+      claimButton = ui.Button(label='Claim All', emoji=FEATURES_EMOJI, style=discord.ButtonStyle.gray)
       claimButton.callback = self.claim
       self.add_item(claimButton)
 
@@ -44,18 +45,18 @@ class LootboxUI(ui.View):
     if winchance(80):
       reward = getRandomItemByRarity(1,self.query)
       self.total_rewards.append(reward)
-      embed2.description = f"**You opened a lootbox and found {reward.name}!**\n\n*Type:* ` {reward.type} ` *Rarity:* ` {reward.rarity} ` *Value:* <:coins:1172819933093179443> ` {reward.price} Coins `"
+      embed2.description = f"**You opened a lootbox and found {reward.name}!**\n\n*Type:* ` {reward.type} ` *Rarity:* ` {reward.rarity} ` *Value:* {COINS_EMOJI} ` {reward.price} Coins `"
       embed2.set_thumbnail(url='https://cdn-icons-png.flaticon.com/128/7839/7839136.png')
       if user_balance < LOOTBOX_PRICE :
           embed2.description += f'\nAnd you spent all your money! No more lootboxes for you!'
       await interaction.edit_original_response(embed=embed2,view=LootboxUI(
         user=self.user,
-        next=user_balance > LOOTBOX_PRICE,
+        next=user_balance-LOOTBOX_PRICE > LOOTBOX_PRICE,
         index=self.index + 1,
         total_rewards=self.total_rewards
         ))
     else:
-      embed2.description = f'**You opened a Lootbox and found nothing!**\n\nYou lost all your opened lootboxes and <:coins:1172819933093179443> ` {self.index * LOOTBOX_PRICE} Coins `!'
+      embed2.description = f'**You opened a Lootbox and found nothing!**\n\nYou lost all your opened lootboxes and {COINS_EMOJI} ` {self.index * LOOTBOX_PRICE} Coins `!'
       embed2.set_thumbnail(url='https://cdn-icons-png.flaticon.com/128/3741/3741593.png')
       self.reset()
       await interaction.edit_original_response(embed=embed2, view=None)
@@ -73,7 +74,7 @@ class LootboxUI(ui.View):
     baseitems = [db.BaseItem(item_id,amount=total_amount) for item_id, total_amount in itemsmerged.items()]
     itemboard = getItemBoard(baseitems)
 
-    embed = discord.Embed(description=f'**<:partyhorn:1175408062782263397> You claimed all rewards!**\n\n{itemboard}')
+    embed = discord.Embed(description=f'**{PARTYHORN_EMOJI} You claimed all rewards!**\n\n{itemboard}')
     self.reset()
     await interaction.response.edit_message(embed=embed, view=None)
 
@@ -86,7 +87,7 @@ class GameCheckoutGUI(discord.ui.View):
     super().__init__(timeout=None)
     self.players = players
     self.winners = winners
-    payout_button = discord.ui.Button(label=f'Proceed to payout ({seconds})',style=discord.ButtonStyle.blurple,emoji='<:checkout:1175007951669436446>')
+    payout_button = discord.ui.Button(label=f'Proceed to payout ({seconds})',style=discord.ButtonStyle.blurple,emoji=CHECKOUT_EMOJI)
     payout_button.callback = self.payout
     self.add_item(payout_button)
 
@@ -97,7 +98,7 @@ class GameCheckoutGUI(discord.ui.View):
       embed = discord.Embed(description='')
       for winner in self.winners:
         db.exchange(winner[0],interaction.client.user.id,pot/len(self.winners))
-        embed.description += f"<@{winner[0]}> got paid <:coins:1172819933093179443>` {pot} Coins `\n*{quote}*"
+        embed.description += f"<@{winner[0]}> got paid {COINS_EMOJI}` {pot} Coins `\n*{quote}*"
     else:
       embed = discord.Embed(description=f'**All gamblers recieve their money back due to a draw.**{quote}')
     embed.set_author(name='Gambling Checkout',icon_url='https://cdn-icons-png.flaticon.com/128/8580/8580823.png')

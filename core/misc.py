@@ -3,7 +3,9 @@ import datetime
 import discord
 import random
 from PIL import ImageDraw, Image, ImageFont
+from core.emojis import *
 import io
+import db
 import json
 
 THRESHOLD = 30
@@ -76,6 +78,16 @@ def isprivileged(member: discord.Member) -> bool:
   '''
   return member.premium_since or member.guild_permissions.administrator or member.guild.owner == member
 
+def hascoins(amount: int, message: str) -> bool:
+    async def predicate(interaction: discord.Interaction):
+        balance = db.users.get('coins',interaction.user.id)
+        print(balance, amount)
+        if balance < amount:
+            await interaction.response.send_message(f"You need at least {COINS_EMOJI} ` {amount} Coins ` to {message}.",ephemeral=True)
+            return False
+        return True
+    return discord.app_commands.check(predicate)
+
 def format_seconds(seconds: float) -> str:
     delta = datetime.timedelta(seconds=seconds)
     days = delta.days
@@ -97,9 +109,9 @@ def format_seconds(seconds: float) -> str:
 
 def calculate_boosts(slots):
     boosts = {
-        "<:coins:1172819933093179443>": ["coin boost", 4002],
-        "<:fireup:1175569234982604870>": ["XP boost", 4001],
-        "<:discount:1243197442531266571>": ["Shop discount", 4003]
+        COINS_EMOJI: ["coin boost", 4002],
+        LEVEL_EMOJI: ["XP boost", 4001],
+        SANDCLOCK_EMOJI: ["Shop discount", 4003]
     }
     boost_durations = {1: 5*60, 2: 10*60}
 

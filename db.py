@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS items (
 ''')
 
 class BaseItem:
-  def __init__(self, item_id: int,user_id:int, amount: int = 0, timestamp: int = 0):
+  def __init__(self, item_id: int,user_id:int = None, amount: int = 0, timestamp: int = 0):
     self.id = item_id
     self.amount = amount
     self.timestamp = timestamp

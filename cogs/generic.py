@@ -90,11 +90,12 @@ class Generic(Plugin):
       ]
 
   @app_commands.command(name="use", description="uses an item from your inventory")
-  @app_commands.autocomplete(value=item_autocomplete)
-  async def use(self, interaction: discord.Interaction, value: str):
-    item = getItemByID(int(value))
+  @app_commands.autocomplete(item=item_autocomplete)
+  @app_commands.describe(item='The item you want to use.')
+  async def use(self, interaction: discord.Interaction, item: str):
+    fullitem = getItemByID(int(item))
     # TODO Will implement await useitem(itemid) in future
-    await interaction.response.send_message(f"**{interaction.user.mention}** used **{item.name}**")
+    await interaction.response.send_message(f"**{interaction.user.mention}** used **{fullitem.name}**")
   
   @app_commands.command(name = "daily",description = "Claim your daily coins!")
   @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))

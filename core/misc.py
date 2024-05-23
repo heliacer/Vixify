@@ -93,3 +93,16 @@ def format_seconds(seconds: float) -> str:
         parts.append(f"{seconds} second{'s' if seconds > 1 else ''}")
     
     return ', '.join(parts)
+
+
+def calculate_boosts(slots):
+    boosts = {
+        "<:coins:1172819933093179443>": ["coin boost", 4002],
+        "<:fireup:1175569234982604870>": ["XP boost", 4001],
+        "<:discount:1243197442531266571>": ["Shop discount", 4003]
+    }
+    boost_durations = {1: 5*60, 2: 10*60}
+
+    matched = [slot for slot in slots if slot in boosts]
+    unique_matches = set(matched)
+    return matched, unique_matches, boosts, boost_durations

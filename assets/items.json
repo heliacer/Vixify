@@ -192,7 +192,7 @@
   {
     "name": "Shop discount",
     "description": "Get a discount for a certain amount of time",
-    "emoji" : "<:discount:1175569234982604870>",
+    "emoji" : "<:discount:1243197442531266571>",
     "id": 4003,
     "type": "boost"
   }

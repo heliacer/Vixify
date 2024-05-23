@@ -7,11 +7,12 @@ import config
 import random
 from core.plugins import Plugin
 from typing import List
+from core.misc import calculate_boosts
 from core.items import getItemByID
 from core.ui import LootboxUI, LOOTBOX_PRICE
 
 SLOT_MACHINE_PRICE = 100
-SLOTS = [":apple:", ":banana:",":watermelon:", "<:coins:1172819933093179443>", "<:level:1172820830812643389>", "<:sandclock:1203261564291911680>"]
+SLOTS = [":apple:", ":banana:",":watermelon:", "<:coins:1172819933093179443>", "<:discount:1243197442531266571>", "<:fireup:1175569234982604870>"]
 
 
 class Generic(Plugin):
@@ -82,7 +83,7 @@ class Generic(Plugin):
       await interaction.response.send_message("Pinging the kittens...",ephemeral=True,delete_after=3)
       await interaction.channel.send(f"**{interaction.user.mention} Pinged <@&1139862719726624768>! :smile:**")
 
-  async def item_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+  async def item_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice]:
       items = [getItemByID(item.id) for item in db.items.all(interaction.user.id)]
       return [
           app_commands.Choice(name=item.name, value=item.id)
@@ -112,70 +113,62 @@ class Generic(Plugin):
     await interaction.response.send_message(embed=embed,view=LootboxUI(interaction.user))
 
   @app_commands.command(description="Take a risky action in hope of getting boosts!")
-  @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))
+  @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id, i.user.id))
   async def slotmachine(self, interaction: discord.Interaction):
-    user_balance = db.users.get( 'coins', interaction.user.id)
-    if user_balance < SLOT_MACHINE_PRICE:
-      await interaction.response.send_message(
-        f"You're too poor to play the slot machine. Save up at least <:coins:1172819933093179443> ` {SLOT_MACHINE_PRICE} Coins ` to get started.",
-        ephemeral=True
-      )
-      return
-    db.exchange(interaction.client.user.id, interaction.user.id, SLOT_MACHINE_PRICE)
-    for i in range(8):
-      slot1, slot2, slot3 = [random.choice(SLOTS) for _ in range(3)]
-      slotformat = ' : '.join([slot1, slot2, slot3])
-      embed = discord.Embed(description=f"{slotformat}\n\n")
-      embed.set_author(name='Slot Machine', icon_url='https://cdn-icons-png.flaticon.com/128/7370/7370028.png')
+      user_balance = db.users.get('coins', interaction.user.id)
+      if user_balance < SLOT_MACHINE_PRICE:
+          await interaction.response.send_message(
+              f"You're too poor to play the slot machine. Save up at least <:coins:1172819933093179443> ` {SLOT_MACHINE_PRICE} Coins ` to get started.",
+              ephemeral=True
+          )
+          return
 
-      if interaction.response.is_done():
-        await interaction.edit_original_response(embed=embed)
-      else:
-        await interaction.response.send_message(embed=embed)
+      db.exchange(interaction.client.user.id, interaction.user.id, SLOT_MACHINE_PRICE)
 
-    # Final result
-    if slot1 == slot2 == slot3:
-      embed.description += '**Jackpot!** '
-      if slot1 in [":apple:", ":banana:", ":cherries:", ":grapes:", ":watermelon:"]:
-        embed.description += f"**You got the ` Golden {slot1.split(':')[1].capitalize()} `**"
-      elif slot1 == "<:coins:1172819933093179443>":
-        embed.description += "**You got a ` 30 minute coin boost `**"
-        db.items.delta(interaction.user.id, 4002, 30*60)
-      elif slot1 == "<:level:1172820830812643389>":
-        embed.description += "**You got a ` 30 minute XP boost `**"
-        db.items.delta(interaction.user.id, 4001, 30*60)
-      else:
-        embed.description += "**You got a ` 30 minute Shop discount `**"
-        db.items.delta(interaction.user.id, 4003, 30*60)
-    else:
-      boosts = {
-        "<:coins:1172819933093179443>": "coin boost",
-        "<:level:1172820830812643389>": "XP boost",
-        "<:sandclock:1203261564291911680>": "Shop discount"
-      }
-      boost_durations = {
-        1: "5 minutes",
-        2: "10 minutes"
-      }
-      
-      matched = [slot for slot in [slot1, slot2, slot3] if slot in boosts]
-      unique_matches = set(matched)
+      for _ in range(8):
+          slots = [random.choice(SLOTS) for _ in range(3)]
+          slotformat = ' : '.join(slots)
+          embed = discord.Embed(description=f"{slotformat}\n\n")
+          embed.set_author(name='Slot Machine', icon_url='https://cdn-icons-png.flaticon.com/128/7370/7370028.png')
 
-      # TODO: check for boost, add to user
-      # just testing
-      db.items.delta(interaction.user.id, 4002, 30*60)
-      
-      if len(unique_matches) > 1:
-        embed.description += '**Lucky! You got:**'
-      elif len(unique_matches) == 1:
-        embed.description += '**Nice! You got:**'
+          if interaction.response.is_done():
+              await interaction.edit_original_response(embed=embed)
+          else:
+              await interaction.response.send_message(embed=embed)
+
+      slot1, slot2, slot3 = slots
+
+      # Final result
+      if slot1 == slot2 == slot3:
+          embed.description += '**Jackpot!** '
+          if slot1 in [":apple:", ":banana:", ":cherries:", ":grapes:", ":watermelon:"]:
+              embed.description += f"**You got the ` Golden {slot1.split(':')[1].capitalize()} `**"
+          elif slot1 == "<:coins:1172819933093179443>":
+              embed.description += "**You got a ` 30 minute coin boost `**"
+              db.items.delta(interaction.user.id, 4002, 30*60)
+          elif slot1 == "<:fireup:1175569234982604870>":
+              embed.description += "**You got a ` 30 minute XP boost `**"
+              db.items.delta(interaction.user.id, 4001, 30*60)
+          else:
+              embed.description += "**You got a ` 30 minute Shop discount `**"
+              db.items.delta(interaction.user.id, 4003, 30*60)
       else:
-        embed.description += '**Better luck next time!**'
-      for slot in unique_matches:
-        count = matched.count(slot)
-        if count in boost_durations:
-          embed.description += f'\n***{boosts[slot]}*** ` {boost_durations[count]} `'
-    await interaction.edit_original_response(embed=embed)
+          matched, unique_matches, boosts, boost_durations = calculate_boosts(slots)
+
+          if len(unique_matches) > 1:
+              embed.description += '**Lucky! You got:**'
+          elif len(unique_matches) == 1:
+              embed.description += '**Nice! You got:**'
+          else:
+              embed.description += '**Better luck next time!**'
+
+          for slot in unique_matches:
+              count = matched.count(slot)
+              if count in boost_durations:
+                  db.items.delta(interaction.user.id, boosts[slot][1], boost_durations[count])
+                  embed.description += f'\n***{boosts[slot][0]}*** ` {boost_durations[count] // 60} minutes `'
+
+      await interaction.edit_original_response(embed=embed)
 
 async def setup(bot):
   await bot.add_cog(Generic(bot))

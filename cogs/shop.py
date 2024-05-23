@@ -176,7 +176,7 @@ class CheckoutButtons(ui.View):
       if role:
         await interaction.user.add_roles(role)
       else:
-        db.items.inc(interaction.user.id,item_id)
+        db.items.increment(interaction.user.id,item_id)
     await self.parent.edit_original_response(embed=embed,view=None)
 
   @ui.button(label="Go back",custom_id="View.CancelCheckout",emoji="<:undo:1175396297583366155>")

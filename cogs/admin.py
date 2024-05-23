@@ -55,7 +55,7 @@ class Admin(Plugin):
 
   @items.command()
   async def put(self, ctx, member: discord.Member, item_id: int, value: int):
-      db.items.inc(member.id, item_id, value)
+      db.items.increment(member.id, item_id, value)
       await ctx.send(embed=CONFIRM_EMBED, delete_after=10)
 
 async def setup(bot):

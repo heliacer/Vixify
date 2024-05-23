@@ -99,8 +99,101 @@
     "name": "Fox Plushie",
     "description": "A cute fox plushie",
     "emoji" :  ":fox:",
-    "price": 30,
+    "price": 60,
     "id": 3003,
     "ownstack" : 0
+  },
+  {
+    "name": "Cat Plushie",
+    "description": "A cute cat plushie",
+    "emoji" :  ":cat:",
+    "price": 30,
+    "id": 3004,
+    "ownstack" : 0
+  },
+  {
+    "name": "Dog Plushie",
+    "description": "A cute dog plushie",
+    "emoji" :  ":dog:",
+    "price": 20,
+    "id": 3005,
+    "ownstack" : 0
+  },
+  {
+    "name": "Penguin Plushie",
+    "description": "A cute penguin plushie",
+    "emoji" :  ":penguin:",
+    "price": 40,
+    "id": 3006,
+    "ownstack" : 0
+  },
+  {
+    "name": "Panda Plushie",
+    "description": "A cute panda plushie",
+    "emoji" :  ":panda_face:",
+    "price": 80,
+    "id": 3007,
+    "ownstack" : 0
+  },
+  {
+    "name": "Rabbit Plushie",
+    "description": "A cute rabbit plushie",
+    "emoji" :  ":rabbit:",
+    "price": 20,
+    "id": 3008,
+    "ownstack" : 0
+  },
+  {
+    "name": "Bear Plushie",
+    "description": "A cute bear plushie",
+    "emoji" :  ":bear:",
+    "price": 30,
+    "id": 3009,
+    "ownstack" : 0
+  },
+  {
+    "name": "Duck Plushie",
+    "description": "A cute duck plushie",
+    "emoji" :  ":duck:",
+    "price": 10,
+    "id": 3010,
+    "ownstack" : 0
+  },
+  {
+    "name": "Chicken Plushie",
+    "description": "A cute chicken plushie",
+    "emoji" :  ":chicken:",
+    "price": 20,
+    "id": 3011,
+    "ownstack" : 0
+  },
+  {
+    "name": "Frog Plushie",
+    "description": "A cute frog plushie",
+    "emoji" :  ":frog:",
+    "price": 5,
+    "id": 3012,
+    "ownstack" : 0
+  },
+  {
+    "name": "XP Boost",
+    "description": "Boosts your XP gain for a certain amount of time",
+    "emoji" : "<:fireup:1175569234982604870>",
+    "id": 4001,
+    "type": "boost"
+  },
+  {
+    "name": "Coin Boost",
+    "description": "Boosts your coin gain for a certain amount of time",
+    "emoji" : "<:coins:1172819933093179443>",
+    "id": 4002,
+    "type": "boost"
+  },
+  {
+    "name": "Shop discount",
+    "description": "Get a discount for a certain amount of time",
+    "emoji" : "<:discount:1175569234982604870>",
+    "id": 4003,
+    "type": "boost"
   }
 ]

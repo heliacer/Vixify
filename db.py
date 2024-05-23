@@ -1,5 +1,6 @@
 import sqlite3
 from typing import List
+from datetime import datetime
 
 conn = sqlite3.connect("vix.db")
 cursor = conn.cursor()
@@ -66,7 +67,7 @@ class Users:
     ''', (user_id, value))
     conn.commit()
     
-  def inc(self, field: str, user_id: int, step: int = 1) -> None:
+  def increment(self, field: str, user_id: int, step: int = 1) -> None:
       """
       Increments a field in a user's row, if the field does not exist it will be created.
       This does not overwrite the field, it adds the step to the current value.
@@ -111,7 +112,7 @@ class Items:
     ''', (user_id, item_id, amount))
     conn.commit()
 
-  def inc(self,user_id: int, item_id: int, step: int = 1) -> None:
+  def increment(self,user_id: int, item_id: int, step: int = 1) -> None:
     '''
     Increments the amount of an item in a user's items, if the item does not exist it will be created.
     This does not overwrite the amount, it adds the step to the current amount
@@ -122,6 +123,22 @@ class Items:
     ON CONFLICT(user_id, item_id) DO UPDATE SET amount = amount + excluded.amount
     ''', (user_id, item_id, step))
     conn.commit()
+
+  def delta(self, user_id: int, item_id: int, deltatime: int) -> None:
+      '''
+      Changes the timestamp of an item in a user's items by a certain delta
+      '''
+      current_timestamp = datetime.now().timestamp()
+      cursor.execute(f'''
+      INSERT INTO items (user_id, item_id, timestamp)
+      VALUES (?, ?, ?)
+      ON CONFLICT(user_id, item_id) DO UPDATE SET timestamp = 
+          COALESCE(
+              (SELECT timestamp FROM items WHERE user_id = ? AND item_id = ?) + ?,
+              ?
+          )
+      ''', (user_id, item_id, current_timestamp, user_id, item_id, deltatime, current_timestamp))
+      conn.commit()
 
 def commit(query: str, *args) -> None:
   '''
@@ -156,8 +173,8 @@ def exchange(target: int, sender: int, value: int) -> None:
   sender_balance = users.get('coins',sender)
   if sender_balance < value:
     raise Exception('Insufficient funds')
-  users.inc('coins',sender,-value)
-  users.inc('coins',target,value)
+  users.increment('coins',sender,-value)
+  users.increment('coins',target,value)
 
 def board(value: str, count: int = None) -> List[int]:
   """

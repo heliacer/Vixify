@@ -31,7 +31,6 @@ def calc_cooldown(message):
     current_time = datetime.datetime.now(datetime.UTC) 
     while calc_message([message, (1, current_time + timediff)])[0] > 20000:
         timediff += datetime.timedelta(seconds=1)
-        print(timediff.total_seconds())
     return int(timediff.total_seconds())
 
 async def broadcast(message: discord.Message,content,title=None,view=None,thumb_url=None):

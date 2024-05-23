@@ -86,7 +86,7 @@ class Economy(Plugin):
       embed = discord.Embed(description=f"**<:padlock:1178730730998734980> {member.name} had a padlock.**")
       dm = discord.Embed(description=f"**{user.mention} tried to steal from you.**",color = 0x2b2d31)
       if winchance(20):
-        db.items.inc(member.id,2001,-1)
+        db.items.increment(member.id,2001,-1)
         embed.description += f"\n**You managed to break the padlock**"
         dm.description += f"\n**Unfortunately, {user.mention} managed to break your padlock, without any lockpick.**"
         if winchance(50):

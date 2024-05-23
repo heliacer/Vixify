@@ -3,6 +3,8 @@ from typing import List
 import discord
 import random
 from db import BaseItem,BaseUser
+from datetime import datetime, timedelta
+from core.misc import format_seconds
 
 class Item:
     def __init__(self, name: str, description: str, id: int,price: int= 0, type: str= 'misc',emoji: discord.Emoji= '',ownstack: int=1,rarity: int=1,buyable: bool=True):
@@ -75,7 +77,7 @@ def getRandomItemByRarity(rarity: int,items: List[Item] = ITEMS) -> Item:
     return random.choice(weighted_items)
 
 def getItemBoard(baseitems: List[BaseItem]) -> str:
-  item_categories = {'role': [], 'command': [], 'utility': [], 'misc': []}
+  item_categories = {'boost': [],'role': [], 'command': [], 'utility': [], 'misc': []}
   board : str = ''
   total : int = 0
   for baseitem in baseitems:
@@ -85,6 +87,10 @@ def getItemBoard(baseitems: List[BaseItem]) -> str:
     itemname = item.name if item.emoji == '' else f"{item.emoji} {item.name}"
     if category in ['role', 'command']:
       item_categories[category].append(f"**{itemname}**\n")
+    if category in ['boost']:
+      print(baseitem.timestamp)
+      delta = datetime.fromtimestamp(baseitem.timestamp) - datetime.now()
+      item_categories[category].append(f"**{itemname}** expires in: {format_seconds(delta.total_seconds())}\n")
     else:
       item_categories[category].append(f"*{baseitem.amount}x* **{itemname}**\n")
 

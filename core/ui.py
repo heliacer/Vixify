@@ -67,7 +67,7 @@ class LootboxUI(ui.View):
         if interaction.guild.get_role(reward.id) and reward.id not in [role.id for role in interaction.user.roles]:
           await interaction.user.add_roles(reward.id)
       else:
-        db.items.inc(interaction.user.id,reward.id)
+        db.items.increment(interaction.user.id,reward.id)
 
     itemsmerged = Counter(item.id for item in self.total_rewards)
     baseitems = [db.BaseItem(item_id,amount=total_amount) for item_id, total_amount in itemsmerged.items()]

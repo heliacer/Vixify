@@ -140,13 +140,13 @@ class Generic(Plugin):
         embed.description += f"**You got the ` Golden {slot1.split(':')[1].capitalize()} `**"
       elif slot1 == "<:coins:1172819933093179443>":
         embed.description += "**You got a ` 30 minute coin boost `**"
-        # TODO: Add the boost to the user
+        db.items.delta(interaction.user.id, 4002, 30*60)
       elif slot1 == "<:level:1172820830812643389>":
         embed.description += "**You got a ` 30 minute XP boost `**"
-        # TODO: Add the boost to the user
+        db.items.delta(interaction.user.id, 4001, 30*60)
       else:
         embed.description += "**You got a ` 30 minute Shop discount `**"
-        # TODO: Add the boost to the user
+        db.items.delta(interaction.user.id, 4003, 30*60)
     else:
       boosts = {
         "<:coins:1172819933093179443>": "coin boost",
@@ -162,6 +162,8 @@ class Generic(Plugin):
       unique_matches = set(matched)
 
       # TODO: check for boost, add to user
+      # just testing
+      db.items.delta(interaction.user.id, 4002, 30*60)
       
       if len(unique_matches) > 1:
         embed.description += '**Lucky! You got:**'

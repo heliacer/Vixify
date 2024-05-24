@@ -8,7 +8,7 @@ from core.plugins import Plugin
 from typing import List
 from core.casino import GameMenu
 from core.misc import calculate_boosts, hascoins
-from core.items import getItemByID
+from core.items import getItemByID, useItem
 from core.ui import LootboxUI, LOOTBOX_PRICE
 from core.emojis import *
 
@@ -92,10 +92,10 @@ class Generic(Plugin):
   @app_commands.command(name="use", description="uses an item from your inventory")
   @app_commands.autocomplete(item=item_autocomplete)
   @app_commands.describe(item='The item you want to use.')
-  async def use(self, interaction: discord.Interaction, item: str):
+  async def use(self, interaction: discord.Interaction, item: str,amount: int = 1):
     fullitem = getItemByID(int(item))
-    # TODO Will implement await useitem(itemid) in future
-    await interaction.response.send_message(f"**{interaction.user.mention}** used **{fullitem.name}**")
+    embed = useItem(interaction.user.id, fullitem, amount)
+    await interaction.response.send_message(embed=embed)
   
   @app_commands.command(name = "daily",description = "Claim your daily coins!")
   @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))

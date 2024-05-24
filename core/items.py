@@ -2,13 +2,13 @@ import json
 from typing import List
 import discord
 import random
-from db import BaseItem,BaseUser
+import db
 from datetime import datetime
 from core.misc import format_seconds
 from core.emojis import *
 
 class Item:
-    def __init__(self, name: str, description: str, id: int,price: int= 0, type: str= 'misc',emoji: discord.Emoji= '',ownstack: int=1,rarity: int=1,buyable: bool=True):
+    def __init__(self, name: str, description: str, id: int,price: int= 0, type: str= 'misc',emoji: discord.Emoji= '',stack: int = None,rarity: int=1,buyable: bool=True):
         self.name = name
         self.description = description
         self.price = price
@@ -16,7 +16,7 @@ class Item:
         self.type = type
         self.rarity = rarity
         self.emoji = emoji
-        self.ownstack = ownstack
+        self.stack = stack if stack else 1 if type in ['boost','role','command'] else 0
         self.buyable = buyable
 
     def __eq__(self, value: 'Item') -> bool:
@@ -77,7 +77,7 @@ def getRandomItemByRarity(rarity: int,items: List[Item] = ITEMS) -> Item:
     
     return random.choice(weighted_items)
 
-def getItemBoard(baseitems: List[BaseItem]) -> str:
+def getItemBoard(baseitems: List[db.BaseItem]) -> str:
   item_categories = {'boost': [],'role': [], 'command': [], 'utility': [], 'misc': []}
   board : str = ''
   total : int = 0
@@ -102,3 +102,14 @@ def getItemBoard(baseitems: List[BaseItem]) -> str:
 
   board += f"**Total:** ` {total} items `\n\n"
   return board
+
+def useItem(user_id: int, item: Item,amount: int = 1, duration: int = 0) -> discord.Embed:
+    embed = discord.Embed(description=f"You have used a **{item.emoji} {item.name}**!")
+    match item.id:
+      case 3001:
+        db.items.increment(user_id, 3001, -amount)
+        db.users.increment('xp',user_id, 100*amount)
+        embed.description += f"\nYou gained {LEVEL_EMOJI}` {1000*amount} XP `!"
+      case _:
+        embed.description += "\nThis item has no effect (yet)"
+    return embed

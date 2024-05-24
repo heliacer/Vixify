@@ -1,14 +1,46 @@
 from discord.ext import commands
+from discord import app_commands
 import discord
 import db
 import config
 from core.plugins import Plugin
 from core.emojis import *
+from core.items import getItems,getItemByID
 
 CONFIRM_MESSAGE = f"**{CONFIRM_EMOJI} Task executed.**"
 CONFIRM_EMBED = discord.Embed(description=CONFIRM_MESSAGE)
 
 class Admin(Plugin):
+  @app_commands.command(name = "giveuser",description="Admin tools to modify user rank, coins & xp")
+  @app_commands.describe(member="The member you want to give to.")
+  @app_commands.describe(amount="The amount you want to give. Not all items are shown here, search for the item you want to give.")
+  @app_commands.describe(type="The type of value you want to give.")
+  @app_commands.choices(type=[app_commands.Choice(name=value.capitalize(), value=value) for value in ['coins','xp','rank']])
+  @app_commands.checks.has_permissions(administrator=True)
+  async def giveuser(self, interaction: discord.Interaction,type: str, member: discord.Member, amount: int):
+    db.users.increment(type,member.id,amount)
+    embed = discord.Embed(description=f'**{CONFIRM_EMOJI} Gave ` {amount} {type.capitalize()} ` to {member.mention}**')
+    await interaction.response.send_message(embed=embed,ephemeral=True)
+
+  async def admin_panel_items(self, interaction: discord.Interaction, current: str):
+    items = getItems()
+    return [
+        app_commands.Choice(name=item.name, value=str(item.id))
+        for item in items if current.lower() in item.name.lower()
+    ][:25]
+
+  @app_commands.command(name = "giveitem",description="Admin tools to modify users items")
+  @app_commands.describe(member="The member you want to give to.")
+  @app_commands.describe(item="The item you want to give.")
+  @app_commands.describe(amount="The amount you want to give.")
+  @app_commands.autocomplete(item=admin_panel_items)
+  @app_commands.checks.has_permissions(administrator=True)
+  async def giveitem(self, interaction: discord.Interaction, member: discord.Member, item: str, amount: int = 1):
+    fullitem = getItemByID(int(item))
+    db.items.increment(member.id, fullitem.id, amount)
+    embed = discord.Embed(description=f'{CONFIRM_EMOJI} Gave *{amount}x* {fullitem.emoji} **{fullitem.name}** to {member.mention}')
+    await interaction.response.send_message(embed=embed)
+
   @commands.command(description="Clears a table in the database.")
   @commands.has_permissions(administrator=True)
   async def cleartable(self, ctx, table, syntax=None):

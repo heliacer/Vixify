@@ -1,6 +1,7 @@
 import sqlite3
 from typing import List
 from datetime import datetime
+from typing import Literal
 
 conn = sqlite3.connect("vix.db")
 cursor = conn.cursor()
@@ -55,12 +56,12 @@ class Users:
     result = cursor.fetchone()
     return BaseUser(*result) if result else None
   
-  def get(self,field: str,user_id: int) -> int:
+  def get(self,field: Literal['coins','xp','rank'],user_id: int) -> int:
     cursor.execute(f"SELECT {field} FROM users WHERE user_id = ?", (user_id,))
     result = cursor.fetchone()
     return result[0] if result else 0
   
-  def set(self, field: str,user_id: int, value: int | str) -> None:
+  def set(self, field: Literal['coins','xp','rank'],user_id: int, value: int | str) -> None:
     """
     Sets a field in a user's row, if the field does not exist it will be created.
     """
@@ -71,7 +72,7 @@ class Users:
     ''', (user_id, value))
     conn.commit()
     
-  def increment(self, field: str, user_id: int, step: int = 1) -> None:
+  def increment(self, field: Literal['coins','xp','rank'], user_id: int, step: int = 1) -> None:
       """
       Increments a field in a user's row, if the field does not exist it will be created.
       This does not overwrite the field, it adds the step to the current value.
@@ -97,34 +98,34 @@ class Items:
     result = cursor.fetchall()
     return [BaseItem(*row) for row in result]
 
-  def get(self,user_id: int, item_id: int) -> int | str | None:
+  def get(self,user_id: int, item_id: int,field: Literal['amount','timestamp','active'] = 'amount') -> int | str | None:
     """
-    Gets the amount of an item in a user's items
+    Gets the field of an item in a user's items. Defaults to amount
     """
-    cursor.execute("SELECT amount FROM items WHERE user_id = ? AND item_id = ?", (user_id, item_id))
+    cursor.execute(f"SELECT {field} FROM items WHERE user_id = ? AND item_id = ?", (user_id, item_id))
     result = cursor.fetchone()
     return result[0] if result else None
   
-  def set(self,user_id: int, item_id: int, amount: int) -> None:
+  def set(self,user_id: int, item_id: int, value: int,field : Literal['amount','timestamp','active'] = 'amount') -> None:
     """
-    Sets the amount of an item in a user's items, if the item does not exist it will be created.
+    Sets the field of an item in a user's items, if the item does not exist it will be created. Defaults to amount
     """
     cursor.execute(f'''
-    INSERT INTO items (user_id, item_id, amount)
+    INSERT INTO items (user_id, item_id, {field})
     VALUES (?, ?, ?)
-    ON CONFLICT(user_id, item_id) DO UPDATE SET amount = excluded.amount
-    ''', (user_id, item_id, amount))
+    ON CONFLICT(user_id, item_id) DO UPDATE SET {field} = excluded.{field}
+    ''', (user_id, item_id, value))
     conn.commit()
 
-  def increment(self,user_id: int, item_id: int, step: int = 1) -> None:
+  def increment(self,user_id: int, item_id: int, step: int = 1,field: Literal['amount','active'] = 'amount') -> None:
     '''
     Increments the amount of an item in a user's items, if the item does not exist it will be created.
     This does not overwrite the amount, it adds the step to the current amount
     '''
     cursor.execute(f'''
-    INSERT INTO items (user_id, item_id, amount)
+    INSERT INTO items (user_id, item_id, {field})
     VALUES (?, ?, ?)
-    ON CONFLICT(user_id, item_id) DO UPDATE SET amount = amount + excluded.amount
+    ON CONFLICT(user_id, item_id) DO UPDATE SET {field} = {field} + excluded.{field}
     ''', (user_id, item_id, step))
     conn.commit()
 

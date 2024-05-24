@@ -71,7 +71,6 @@
     "price": 200,
     "id": 2001,
     "type": "utility",
-    "ownstack" : 0,
     "rarity" : 2
   },
   {
@@ -81,7 +80,6 @@
     "price": 200,
     "id": 2002,
     "type": "utility",
-    "ownstack" : 0,
     "rarity" : 2
   },
   {
@@ -91,89 +89,96 @@
     "price": 1000,
     "id": 2003,
     "type": "utility",
-    "ownstack" : 0,
     "rarity" : 4,
     "buyable" : false
+  },
+  {
+    "name": "XP Bottle",
+    "description": "Gives you a moderate amount of XP once used",
+    "emoji" : ":test_tube:",
+    "price": 50,
+    "id": 3001,
+    "type": "utility",
+    "rarity" : 2
+  },
+  {
+    "name": "XP Jar",
+    "description": "Gives you a large amount of XP once used",
+    "emoji" : ":jar:",
+    "price": 100,
+    "id": 3002,
+    "type": "utility",
+    "rarity" : 3
   },
   {
     "name": "Fox Plushie",
     "description": "A cute fox plushie",
     "emoji" :  ":fox:",
     "price": 60,
-    "id": 3003,
-    "ownstack" : 0
+    "id": 3003
   },
   {
     "name": "Cat Plushie",
     "description": "A cute cat plushie",
     "emoji" :  ":cat:",
     "price": 30,
-    "id": 3004,
-    "ownstack" : 0
+    "id": 3004
   },
   {
     "name": "Dog Plushie",
     "description": "A cute dog plushie",
     "emoji" :  ":dog:",
     "price": 20,
-    "id": 3005,
-    "ownstack" : 0
+    "id": 3005
   },
   {
     "name": "Penguin Plushie",
     "description": "A cute penguin plushie",
     "emoji" :  ":penguin:",
     "price": 40,
-    "id": 3006,
-    "ownstack" : 0
+    "id": 3006
   },
   {
     "name": "Panda Plushie",
     "description": "A cute panda plushie",
     "emoji" :  ":panda_face:",
     "price": 80,
-    "id": 3007,
-    "ownstack" : 0
+    "id": 3007
   },
   {
     "name": "Rabbit Plushie",
     "description": "A cute rabbit plushie",
     "emoji" :  ":rabbit:",
     "price": 20,
-    "id": 3008,
-    "ownstack" : 0
+    "id": 3008
   },
   {
     "name": "Bear Plushie",
     "description": "A cute bear plushie",
     "emoji" :  ":bear:",
     "price": 30,
-    "id": 3009,
-    "ownstack" : 0
+    "id": 3009
   },
   {
     "name": "Duck Plushie",
     "description": "A cute duck plushie",
     "emoji" :  ":duck:",
     "price": 10,
-    "id": 3010,
-    "ownstack" : 0
+    "id": 3010
   },
   {
     "name": "Chicken Plushie",
     "description": "A cute chicken plushie",
     "emoji" :  ":chicken:",
     "price": 20,
-    "id": 3011,
-    "ownstack" : 0
+    "id": 3011
   },
   {
     "name": "Frog Plushie",
     "description": "A cute frog plushie",
     "emoji" :  ":frog:",
     "price": 5,
-    "id": 3012,
-    "ownstack" : 0
+    "id": 3012
   },
   {
     "name": "XP Boost",

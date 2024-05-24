@@ -51,7 +51,7 @@ async def loadpage(interaction: discord.Interaction,page: int,balance: int,sale_
 
   # Add the items of display to the embed
   for item in itemDisplay:
-    if item.id in user_roles or db.items.get(interaction.user.id,item.id) > 0 if item.ownstack == 1 else False:
+    if item.id in user_roles or db.items.get(interaction.user.id,item.id) > 0 if item.stack == 1 else False:
       balance_format = f"{BADGE_EMOJI}`` Bought ``" 
     elif item.price * sale_percent <= balance:
       balance_format = f"{COINS_EMOJI} `` {item.price * sale_percent:,.0f} Coins ``" 
@@ -102,8 +102,8 @@ class MainMenu(ui.View):
     buttonright = ui.Button(emoji=ARROWRIGHT_EMOJI,custom_id="view.ArrowRight",disabled=right_disabled,row=1)
     items = list(CONTENT[self.section])[6*(page-1):6*page]
     user_item_ids = [role.id for role in parent.user.roles]
-    user_item_ids.extend(item.id for item in db.items.all(parent.user.id) if getItemByID(item.id).ownstack == 1)
-    nonstackable = [id for id in self.selection if getItemByID(id,CONTENT[self.section]).ownstack == 1]
+    user_item_ids.extend(item.id for item in db.items.all(parent.user.id) if getItemByID(item.id).stack == 1)
+    nonstackable = [id for id in self.selection if getItemByID(id,CONTENT[self.section]).stack == 1]
     options = [discord.SelectOption(label=item.name,value=item.id) for item in items if item.price*self.sale_percent <= balance-price and item.id not in nonstackable and item.id not in user_item_ids]
     menuselect = ui.Select(custom_id="view.MenuSelect", placeholder="Select from Page", min_values=1, max_values=1, options=options,row=0)
     

@@ -20,7 +20,7 @@ class LootboxUI(ui.View):
     self.total_rewards = total_rewards
     
     # list of items which only can be owned once that the user owns
-    owned = set(item.id for item in db.items.all(user.id) if getItemByID(item.id).ownstack == 1)
+    owned = set(item.id for item in db.items.all(user.id) if getItemByID(item.id).stack == 1)
     self.query = [item for item in getItems() if item.id not in owned and item.type not in ['role','command']]
 
     if next:

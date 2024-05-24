@@ -20,18 +20,22 @@ CREATE TABLE IF NOT EXISTS items (
   user_id INTEGER,
   amount INTEGER DEFAULT 0,
   timestamp INTEGER DEFAULT 0,
+  active INTEGER DEFAULT 0,
   PRIMARY KEY (item_id, user_id),
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 ''')
 
+
 class BaseItem:
-  def __init__(self, item_id: int,user_id:int = None, amount: int = 0, timestamp: int = 0):
+  def __init__(self, item_id: int,user_id:int = None, amount: int = 0,timestamp: int = None,active: int = 0):
     self.id = item_id
     self.amount = amount
     self.timestamp = timestamp
+    self.active = active
+
   def __repr__(self) -> str:
-    return f"BaseItem | ID {self.id} | Amount {self.amount} | Timestamp {self.timestamp}"
+    return f"BaseItem | ID {self.id} | Amount {self.amount}"
   
 class BaseUser:
   def __init__(self, user_id: int, coins: int, xp: int, rank: int):
@@ -124,9 +128,26 @@ class Items:
     ''', (user_id, item_id, step))
     conn.commit()
 
+  def activate(self, user_id: int, item_id: int, amount: int) -> None:
+      '''
+      Activates an item in a user's items.
+      If the item is already active, the amount will be incremented.
+      This is only used for items that do not have a timestamp, such as padlocks.
+      '''
+      cursor.execute('''
+      INSERT INTO items (user_id, item_id, amount, active)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(user_id, item_id) DO UPDATE SET 
+          amount = items.amount - excluded.amount, 
+          active = items.active + excluded.active
+      ''', (user_id, item_id, -amount, amount))
+      conn.commit()
+
   def delta(self, user_id: int, item_id: int, deltatime: int) -> None:
       '''
-      Changes the timestamp of an item in a user's items by a certain delta
+      Changes the timestamp of an active item in a user's items by a certain delta.
+      Using timestamp allows for items that have a duration, such as a xp boost.
+      They usually don't have an active amount, but a timestamp that is updated.
       '''
       current_timestamp = datetime.now().timestamp()
       cursor.execute(f'''

@@ -109,7 +109,7 @@ def useItem(user_id: int, item: Item,amount: int = 1, duration: int = 0) -> disc
       case 3001:
         db.items.increment(user_id, 3001, -amount)
         db.users.increment('xp',user_id, 100*amount)
-        embed.description += f"\nYou gained {LEVEL_EMOJI}` {1000*amount} XP `!"
+        embed.description += f"\nYou gained {LEVEL_EMOJI}` {100*amount} XP `!"
       case _:
         embed.description += "\nThis item has no effect (yet)"
     return embed

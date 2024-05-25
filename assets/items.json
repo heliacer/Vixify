@@ -114,15 +114,17 @@
     "name": "Fox Plushie",
     "description": "A cute fox plushie",
     "emoji" :  ":fox:",
-    "price": 60,
-    "id": 3003
+    "price": 70,
+    "id": 3003,
+    "rarity" : 3
   },
   {
     "name": "Cat Plushie",
     "description": "A cute cat plushie",
     "emoji" :  ":cat:",
     "price": 30,
-    "id": 3004
+    "id": 3004,
+    "rarity" : 2
   },
   {
     "name": "Dog Plushie",
@@ -136,13 +138,14 @@
     "description": "A cute penguin plushie",
     "emoji" :  ":penguin:",
     "price": 40,
-    "id": 3006
+    "id": 3006,
+    "rarity" : 2
   },
   {
     "name": "Panda Plushie",
     "description": "A cute panda plushie",
     "emoji" :  ":panda_face:",
-    "price": 80,
+    "price": 60,
     "id": 3007
   },
   {
@@ -181,6 +184,32 @@
     "id": 3012
   },
   {
+    "name" : "Web Designers Course Book",
+    "description" : "A book that teaches you how to design",
+    "emoji" : ":notebook:",
+    "price" : 80,
+    "id" : 3013,
+    "type": "book"
+  },
+  {
+    "name" : "Python Developers Course Book",
+    "description" : "A book that teaches you how to code in Python",
+    "emoji" : ":blue_book:",
+    "price" : 100,
+    "id" : 3014,
+    "type": "book",
+    "rarity": 2
+  },
+  {
+    "name" : "JavaScript Developers Course Book",
+    "description" : "A book that teaches you how to code in JavaScript",
+    "emoji" : ":orange_book:",
+    "price" : 100,
+    "id" : 3015,
+    "type": "book",
+    "rarity": 2
+  },
+  {
     "name": "XP Boost",
     "description": "Boosts your XP gain for a certain amount of time",
     "emoji" : "<:fireup:1175569234982604870>",
@@ -200,5 +229,12 @@
     "emoji" : "<:discount:1243197442531266571>",
     "id": 4003,
     "type": "boost"
+  },
+  {
+    "name" : "Daily Coins Streak",
+    "description" : "A bonus for daily claiming coins. The more days you claim, the more coins you get.",
+    "emoji" : "<:streak:1172819933093179443>",
+    "id" : 5001,
+    "type" : "streak"
   }
 ]

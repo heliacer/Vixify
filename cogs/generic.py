@@ -6,13 +6,15 @@ import config
 import random
 from core.plugins import Plugin
 from typing import List
+from datetime import datetime
 from core.casino import GameMenu
-from core.misc import calculate_boosts, hascoins
+from core.misc import calculate_boosts, hascoins, format_seconds
 from core.items import getItemByID, useItem
 from core.ui import LootboxUI, LOOTBOX_PRICE
 from core.emojis import *
 
 SLOT_MACHINE_PRICE = 100
+DAILY_COINS = 25
 SLOTS = [":apple:", ":banana:",":watermelon:", COINS_EMOJI, LEVEL_EMOJI,SANDCLOCK_EMOJI]
 
 
@@ -98,9 +100,28 @@ class Generic(Plugin):
     await interaction.response.send_message(embed=embed)
   
   @app_commands.command(name = "daily",description = "Claim your daily coins!")
-  @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))
+  # @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))
   async def daily(self, interaction: discord.Interaction):
-    raise NotImplementedError("This command is not implemented yet.")
+    streak = db.items.get(interaction.user.id,5001)
+    new = False if streak else True
+    streak = streak or 0
+    last_daily = db.items.get(interaction.user.id,5001,'timestamp') or datetime.now().timestamp()
+    delta_last = datetime.now() - datetime.fromtimestamp(last_daily)
+    coins = DAILY_COINS + (streak * DAILY_COINS)
+    print(streak)
+    print(last_daily)
+    print(delta_last.total_seconds())
+    embed = discord.Embed(description=f'**You have claimed **{COINS_EMOJI}` {coins} Coins `\n')
+    if delta_last.total_seconds() > 86400 * 2:
+      db.items.set(interaction.user.id,5001,1)
+      embed.description += f"*You have lost your streak and will start from 1.*"
+    else:
+      db.items.increment(interaction.user.id, 5001)
+      embed.description += f"**{FIREUP_EMOJI} You're on a {streak} day streak!**"
+      if new:
+        embed.description += F"\n>>> ***Make sure to claim your daily coins every day to keep your streak going!\nThe coins you get will increase by {DAILY_COINS} each day!***"
+    db.items.delta(interaction.user.id, 5001)
+    await interaction.response.send_message(embed=embed)
 
   @app_commands.command(name = "lootbox",description = "Take a risky action in hope of getting coins and items!")
   @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))

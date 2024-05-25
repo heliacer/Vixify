@@ -144,22 +144,23 @@ class Items:
       ''', (user_id, item_id, -amount, amount))
       conn.commit()
 
-  def delta(self, user_id: int, item_id: int, deltatime: int) -> None:
+  def delta(self, user_id: int, item_id: int, time_in_seconds: int = 0) -> None:
       '''
-      Changes the timestamp of an active item in a user's items by a certain delta.
+      Changes the timestamp of an active item in a user's items by certain seconds.
+      The value can be negative to subtract time.
       Using timestamp allows for items that have a duration, such as a xp boost.
       They usually don't have an active amount, but a timestamp that is updated.
       '''
       current_timestamp = datetime.now().timestamp()
-      cursor.execute(f'''
+      cursor.execute('''
       INSERT INTO items (user_id, item_id, timestamp)
       VALUES (?, ?, ?)
       ON CONFLICT(user_id, item_id) DO UPDATE SET timestamp = 
           COALESCE(
-              (SELECT timestamp FROM items WHERE user_id = ? AND item_id = ?) + ?,
+              (SELECT timestamp FROM items WHERE user_id = ? AND item_id = ?) + ?, 
               ?
           )
-      ''', (user_id, item_id, current_timestamp, user_id, item_id, deltatime, current_timestamp))
+      ''', (user_id, item_id, current_timestamp, user_id, item_id, time_in_seconds, current_timestamp))
       conn.commit()
 
 def commit(query: str, *args) -> None:

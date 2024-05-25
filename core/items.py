@@ -91,6 +91,7 @@ def getItemBoard(baseitems: List[db.BaseItem]) -> str:
     if category in ['boost']:
       print(baseitem.timestamp)
       delta = datetime.fromtimestamp(baseitem.timestamp) - datetime.now()
+      print(format_seconds(delta.total_seconds()))
       item_categories[category].append(f"**{itemname}** expires in: {format_seconds(delta.total_seconds())}\n")
     else:
       item_categories[category].append(f"*{baseitem.amount}x* **{itemname}**\n")

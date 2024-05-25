@@ -100,7 +100,7 @@ class Generic(Plugin):
     await interaction.response.send_message(embed=embed)
   
   @app_commands.command(name = "daily",description = "Claim your daily coins!")
-  # @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))
+  @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))
   async def daily(self, interaction: discord.Interaction):
     streak = db.items.get(interaction.user.id,5001)
     new = False if streak else True
@@ -117,9 +117,9 @@ class Generic(Plugin):
       embed.description += f"*You have lost your streak and will start from 1.*"
     else:
       db.items.increment(interaction.user.id, 5001)
-      embed.description += f"**{FIREUP_EMOJI} You're on a {streak} day streak!**"
+      embed.description += f"**{FIREUP_EMOJI} You're on a {streak+1} day streak!**"
       if new:
-        embed.description += F"\n>>> ***Make sure to claim your daily coins every day to keep your streak going!\nThe coins you get will increase by {DAILY_COINS} each day!***"
+        embed.description += F"\n\n>>> ***Make sure to claim your daily coins every day to keep your streak going!\nThe coins you get will increase by {DAILY_COINS} each day!***"
     db.items.delta(interaction.user.id, 5001)
     await interaction.response.send_message(embed=embed)
 

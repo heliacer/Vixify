@@ -226,7 +226,7 @@
   {
     "name": "Shop discount",
     "description": "Get a discount for a certain amount of time",
-    "emoji" : "<:discount:1243197442531266571>",
+    "emoji" : "<:shop:1172610058677407785>",
     "id": 4003,
     "type": "boost"
   },

@@ -11,6 +11,18 @@ CONFIRM_MESSAGE = f"**{CONFIRM_EMOJI} Task executed.**"
 CONFIRM_EMBED = discord.Embed(description=CONFIRM_MESSAGE)
 
 class Admin(Plugin):
+  @app_commands.command(name = "viewdata",description="Admin tool to read the database.")
+  @app_commands.checks.has_permissions(administrator=True)
+  @app_commands.describe(table="The table you want to view.")
+  @app_commands.choices(table=[app_commands.Choice(name=table.capitalize(), value=table) for table in ['users','items',]])
+  async def database(self, interaction: discord.Interaction, table: str):
+    # TODO : Add pagination, improve query
+    result = db.fetchall(f"SELECT * FROM {table}")
+    embed = discord.Embed(description='')
+    for row in result:
+      embed.description += ' | '.join([f"` {value} `" for value in row]) + '\n'
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
   @app_commands.command(name = "giveuser",description="Admin tools to modify user rank, coins & xp")
   @app_commands.describe(member="The member you want to give to.")
   @app_commands.describe(amount="The amount you want to give. Not all items are shown here, search for the item you want to give.")
@@ -38,7 +50,7 @@ class Admin(Plugin):
   async def giveitem(self, interaction: discord.Interaction, member: discord.Member, item: str, amount: int = 1):
     fullitem = getItemByID(int(item))
     db.items.increment(member.id, fullitem.id, amount)
-    embed = discord.Embed(description=f'{CONFIRM_EMOJI} Gave *{amount}x* {fullitem.emoji} **{fullitem.name}** to {member.mention}')
+    embed = discord.Embed(description=f'{CONFIRM_EMOJI} Gave *{amount:,}x* {fullitem.emoji} **{fullitem.name}** to {member.mention}')
     await interaction.response.send_message(embed=embed)
 
   @commands.command(description="Clears a table in the database.")

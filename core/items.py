@@ -78,9 +78,11 @@ def getRandomItemByRarity(rarity: int,items: List[Item] = ITEMS) -> Item:
     return random.choice(weighted_items)
 
 def getItemBoard(baseitems: List[db.BaseItem]) -> str:
-  item_categories = {'boost': [],'role': [], 'command': [], 'utility': [], 'misc': []}
+  # TODO : Fix bug where streak item appears twice in the board
+  item_categories = {'streak':[],'boost': [],'role': [], 'command': [], 'utility': [], 'misc': []}
   board : str = ''
   total : int = 0
+  print(baseitems)
   for baseitem in baseitems:
     total += baseitem.amount
     item = getItemByID(baseitem.id)
@@ -88,6 +90,8 @@ def getItemBoard(baseitems: List[db.BaseItem]) -> str:
     itemname = item.name if item.emoji == '' else f"{item.emoji} {item.name}"
     if category in ['role', 'command']:
       item_categories[category].append(f"**{itemname}**\n")
+    if category in ['streak']:
+      item_categories[category].append(f"**{item.name}**: {FIREUP_EMOJI}` {baseitem.amount} `\n")
     if category in ['boost']:
       print(baseitem.timestamp)
       delta = datetime.fromtimestamp(baseitem.timestamp) - datetime.now()

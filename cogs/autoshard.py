@@ -193,10 +193,7 @@ class Events(Plugin):
         if isinstance(error, commands.CommandOnCooldown):
             embed = discord.Embed(description=f'***{SANDCLOCK_EMOJI} This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')
             await ctx.send(embed=embed, ephemeral=True)
-        elif isinstance(error, (commands.MissingRequiredArgument, commands.MemberNotFound, commands.BadArgument, commands.MissingPermissions, commands.BotMissingPermissions)):
-            embed = discord.Embed(description=f'**{ERR_EMOJI} {error}**')
-            await ctx.send(embed=embed)
-        elif isinstance(error, commands.CommandError):
+        elif isinstance(error, (commands.MissingPermissions, commands.CheckFailure)):
             embed = discord.Embed(description=f'**{ERR_EMOJI} {error}**')
             await ctx.send(embed=embed)
         else:
@@ -208,9 +205,11 @@ class Events(Plugin):
 
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.CommandOnCooldown):
-        CooldownEmbed = discord.Embed(
-            description=f'***{SANDCLOCK_EMOJI} This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')
-        await interaction.response.send_message(embed=CooldownEmbed, ephemeral=True)
+        embed = discord.Embed(description=f'***{SANDCLOCK_EMOJI} This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+    elif isinstance(error, (app_commands.MissingPermissions,app_commands.CheckFailure)):
+        embed = discord.Embed(description=f'**{ERR_EMOJI} {error}**')
+        await interaction.response.send_message(embed=embed)
     else:
         exception = traceback.format_exception(type(error), error, error.__traceback__)
         file = discord.File(filename="error.log", fp=io.BytesIO(''.join(exception).encode()))

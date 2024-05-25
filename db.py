@@ -148,21 +148,24 @@ class Items:
       '''
       Changes the timestamp of an active item in a user's items by certain seconds.
       The value can be negative to subtract time.
-      Using timestamp allows for items that have a duration, such as a xp boost.
+      Using timestamp allows for items that have a duration, such as an XP boost.
       They usually don't have an active amount, but a timestamp that is updated.
       '''
       current_timestamp = datetime.now().timestamp()
+      
       cursor.execute('''
       INSERT INTO items (user_id, item_id, timestamp)
       VALUES (?, ?, ?)
-      ON CONFLICT(user_id, item_id) DO UPDATE SET timestamp = 
-          COALESCE(
-              (SELECT timestamp FROM items WHERE user_id = ? AND item_id = ?) + ?, 
-              ?
+      ON CONFLICT(user_id, item_id) DO UPDATE SET 
+          timestamp = (
+              SELECT timestamp + ?
+              FROM items
+              WHERE user_id = ? AND item_id = ?
           )
-      ''', (user_id, item_id, current_timestamp, user_id, item_id, time_in_seconds, current_timestamp))
+      ''', (user_id, item_id, current_timestamp + time_in_seconds, 
+            time_in_seconds, user_id, item_id))
       conn.commit()
-
+      
 def commit(query: str, *args) -> None:
   '''
   Modifies the database with a custom query, commiting the changes
@@ -177,6 +180,13 @@ def fetch(query: str, *args) -> str | int | List[int | str] | None:
   cursor.execute(query, args)
   result = cursor.fetchone()
   return result[0] if result else None
+
+def fetchall(query: str, *args) -> List[int | str]:
+  '''
+  Fetches all data from the database with a custom query
+  '''
+  cursor.execute(query, args)
+  return cursor.fetchall()
   
 def wipe(user_id: int) -> None:
   '''

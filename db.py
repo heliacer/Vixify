@@ -27,9 +27,51 @@ CREATE TABLE IF NOT EXISTS items (
 );
 ''')
 
+cursor.execute('''
+  CREATE TABLE IF NOT EXISTS mails (
+  mail_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  author_id INTEGER,
+  recipient_id INTEGER DEFAULT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  timestamp INTEGER NOT NULL,
+  FOREIGN KEY (author_id) REFERENCES users(user_id),
+  FOREIGN KEY (recipient_id) REFERENCES users(user_id)
+);
+''')
+
+cursor.execute('''
+  CREATE TABLE IF NOT EXISTS has_read (
+    mail_id INTEGER,
+    user_id INTEGER,
+    read BOOLEAN DEFAULT FALSE,
+    PRIMARY KEY (mail_id, user_id),
+    FOREIGN KEY (mail_id) REFERENCES mails(mail_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE
+  );
+''')
+
+
+class Mail:
+  def __init__(self,author_id: int,recipient_id: int,title: str,description: str,timestamp: int):
+    self.author_id = author_id
+    self.recipient_id = recipient_id
+    self.title = title
+    self.description = description
+    self.timestamp = timestamp
+  
+  def __repr__(self) -> str:
+    return f"Mail | Title {self.title} | Description {self.description}"
+
 
 class BaseItem:
-  def __init__(self, item_id: int,user_id:int = None, amount: int = 0,timestamp: int = 0,active: int = 0):
+  def __init__(self,
+               item_id: int,
+               user_id:int = None,
+               amount: int = 0,
+               timestamp: int = 0,
+               active: int = 0,
+               ):
     self.id = item_id
     self.amount = amount
     self.timestamp = timestamp
@@ -165,6 +207,18 @@ class Items:
       ''', (user_id, item_id, current_timestamp + time_in_seconds, 
             time_in_seconds, user_id, item_id))
       conn.commit()
+
+class Mails:
+  def send():
+    pass
+
+  def sendall():
+    pass
+
+  def receive():
+    pass
+
+
       
 def commit(query: str, *args) -> None:
   '''

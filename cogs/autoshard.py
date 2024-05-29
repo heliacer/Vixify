@@ -203,6 +203,11 @@ class Events(Plugin):
             ErrorEmbed.set_footer(text=str(error))
             await ctx.send(embed=ErrorEmbed, file=file)
 
+    @commands.Cog.listener()
+    async def on_interaction(self, interaction: discord.Interaction):
+        print(interaction.message)
+        # TODO append embed
+
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.CommandOnCooldown):
         embed = discord.Embed(description=f'***{SANDCLOCK_EMOJI} This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')

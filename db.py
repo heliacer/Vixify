@@ -207,7 +207,26 @@ class Items:
       ''', (user_id, item_id, current_timestamp + time_in_seconds, 
             time_in_seconds, user_id, item_id))
       conn.commit()
+  
+  def clearpast(self, user_id: int, item_ids: list[int]) -> None:
+      '''
+      Clears specified items that have expired from a user's items.
+      '''
+      if not item_ids:
+          return  # If item_ids is empty, do nothing
 
+      current_timestamp = datetime.now().timestamp()
+      # Convert list of item_ids to a comma-separated string for SQL query
+      item_ids_str = ','.join('?' for _ in item_ids)
+      query = f'''
+      DELETE FROM items
+      WHERE user_id = ? AND item_id IN ({item_ids_str}) AND timestamp IS NOT NULL AND timestamp < ?
+      '''
+      parameters = [user_id] + item_ids + [current_timestamp]
+      cursor.execute(query, parameters)
+      conn.commit()
+      
+# TODO: Implement the mail system
 class Mails:
   def send():
     pass

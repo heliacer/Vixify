@@ -3,10 +3,11 @@ import config
 import db
 from discord.ext import commands
 import datetime
+import time
 from discord import app_commands
 import traceback
 from core.misc import messages, warnings, has_penalty, ranks
-from core.misc import broadcast, calc_cooldown, calc_message, stripCodeBlocks, isauthor, format_seconds
+from core.misc import broadcast, calc_cooldown, calc_message, stripCodeBlocks, isauthor
 from core.plugins import Plugin
 from core.emojis import *
 import io
@@ -72,22 +73,23 @@ class Events(Plugin):
         if not message.guild:
             return
 
+        user_id = message.author.id
         # Ignore code blocks
         message.content = stripCodeBlocks(message.content)
 
         # Add heat, calculate stuff
         content_length = len(message.content)
-        if message.author.id not in messages:
-            messages[message.author.id] = []
-        messages[message.author.id].append((content_length, message.created_at))
-        if len(messages[message.author.id]) > 2:
-            messages[message.author.id].pop(0)
-        heat, time = calc_message(messages[message.author.id])
+        if user_id not in messages:
+            messages[user_id] = []
+        messages[user_id].append((content_length, message.created_at))
+        if len(messages[user_id]) > 2:
+            messages[user_id].pop(0)
+        heat, time = calc_message(messages[user_id])
 
         # Predict next
-        heat_next, time_next = calc_message([messages[message.author.id][-1], (1, message.created_at)])
+        heat_next, time_next = calc_message([messages[user_id][-1], (1, message.created_at)])
         if heat_next > 20000 and heat < 20000:
-            seconds_to_wait = calc_cooldown(messages[message.author.id][-1])
+            seconds_to_wait = calc_cooldown(messages[user_id][-1])
             await message.channel.send(
                 f"**{message.author.mention}, you're about to exceed the heat limit!**\nWait ``{seconds_to_wait}``  seconds before sending a new message.",
                 delete_after=seconds_to_wait)
@@ -96,17 +98,17 @@ class Events(Plugin):
         if not message.author.guild_permissions.administrator and not message.author.is_timed_out():
             if heat > 20000:  # Harmful message spam
                 await message.delete()
-                has_penalty.setdefault(message.author.id, False)
-                if has_penalty[message.author.id]:
-                    has_penalty[message.author.id] = False
+                has_penalty.setdefault(user_id, False)
+                if has_penalty[user_id]:
+                    has_penalty[user_id] = False
                     duration = datetime.timedelta(hours=1)
                     await message.author.timeout(duration)
-                    db.exchange(self.bot.user.id, message.author.id,
-                                db.users.get('coins', message.author.id) // 2)
+                    db.exchange(self.bot.user.id, user_id,
+                                db.users.get('coins', user_id) // 2)
                     await broadcast(message=message, title='Heavy message spam punishment',
                                     content=f"**Now you've done it, {message.author.mention}. Half your coins. Gone.**\n\nThis happened due to you breaking an important rule twice. Do not spam messages in order to get coins. You have been timed out for an hour.\n*Your XP and your Level remain the same. Create a ticket <#{config.TICKET_CHANNEL}> for further questions.*")
                 else:
-                    has_penalty[message.author.id] = True
+                    has_penalty[user_id] = True
                     duration = datetime.timedelta(minutes=30)
                     await message.author.timeout(duration)
                     await message.channel.purge(limit=10, check=lambda msg: isauthor(msg, message.author))
@@ -117,16 +119,16 @@ class Events(Plugin):
                 return
             elif time and time < 0.5:  # Non-harmful fast message spam
                 await message.delete()
-                warnings.setdefault(message.author.id, 0)
-                warnings[message.author.id] += 1
-                if warnings[message.author.id] == 6:
-                    warnings[message.author.id] = 0
+                warnings.setdefault(user_id, 0)
+                warnings[user_id] += 1
+                if warnings[user_id] == 6:
+                    warnings[user_id] = 0
                     duration = datetime.timedelta(minutes=10)
                     await message.author.timeout(duration)
                     await broadcast(message=message, title='Fast message spam punishment',
                                     content=f"**You got a 10 minute timeout for spamming, {message.author.mention}**",
                                     thumb_url='https://media1.tenor.com/m/frOjgVit9XIAAAAd/rrane-battal.gif')
-                elif warnings[message.author.id] == 2:
+                elif warnings[user_id] == 2:
                     duration = datetime.timedelta(seconds=10)
                     await message.author.timeout(duration)
                     await broadcast(message=message, title='Fast message spam warning',
@@ -137,11 +139,24 @@ class Events(Plugin):
         # Rewarding system
         if content_length > 200:
             content_length = 200
+
         coins_new = content_length // 10
-        if message.author.premium_since:
-            coins_new = content_length // 8
         xp_new = content_length // 4
-        user_id = message.author.id
+
+        # Pendant 1.5x Boost for Nitro
+        if message.author.premium_since:
+            coins_new = content_length // 7.5
+
+        # Adjust for temporary boosts
+        now_time = datetime.datetime.now().timestamp()
+        xp_boost_timestamp = db.items.get(user_id,4001,'timestamp')
+        coins_boost_timestamp = db.items.get(user_id,4002,'timestamp')
+
+        if now_time < xp_boost_timestamp if xp_boost_timestamp else False:
+            xp_new = content_length // 2
+        if now_time < coins_boost_timestamp if coins_boost_timestamp else False:
+            coins_new = content_length // 5
+
         user_rank = db.users.get('rank',user_id)
         user_xp = db.users.get('xp',user_id)
         bank_balance = db.users.get('coins',self.bot.user.id)
@@ -169,8 +184,10 @@ class Events(Plugin):
                     f"**:tada: Congrats {message.author.mention}, You just reached {LEVEL_EMOJI} `` Rank {user_rank + rank_new} `` !\n\nTIP:** *You can exchange coins earned by chatting in <#{config.SHOP_CHANNEL}>.\nEnjoy your stay!*")
                 user_xp = 0
                 xp_new = xp_new - 15
+
         db.users.increment('rank',user_id,rank_new)
         db.users.increment("xp",user_id,xp_new )
+
         if bank_balance < coins_new:
             if not bank_balance == 0:
                 db.exchange(user_id, self.bot.user.id, bank_balance)
@@ -191,7 +208,7 @@ class Events(Plugin):
         if isinstance(error, (commands.CheckFailure, commands.CommandNotFound)):
             return
         if isinstance(error, commands.CommandOnCooldown):
-            embed = discord.Embed(description=f'***{SANDCLOCK_EMOJI} This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')
+            embed = discord.Embed(description=f'***{SANDCLOCK_EMOJI} This command is on cooldown. Try again <t:{int(time.time() + error.retry_after)}:R> ***')
             await ctx.send(embed=embed, ephemeral=True)
         elif isinstance(error, (commands.MissingPermissions, commands.CheckFailure)):
             embed = discord.Embed(description=f'**{ERR_EMOJI} {error}**')
@@ -205,12 +222,12 @@ class Events(Plugin):
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
-        print(interaction.message)
-        # TODO append embed
-
+        # TODO : append embed on the existing interaction passed, don't override current embed
+        pass
+        
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.CommandOnCooldown):
-        embed = discord.Embed(description=f'***{SANDCLOCK_EMOJI} This command is on cooldown. Try again after {format_seconds(error.retry_after)}***')
+        embed = discord.Embed(description=f'***{SANDCLOCK_EMOJI} This command is on cooldown. Try again <t:{int(time.time() + error.retry_after)}:R> ***')
         await interaction.response.send_message(embed=embed, ephemeral=True)
     elif isinstance(error, (app_commands.MissingPermissions,app_commands.CheckFailure)):
         embed = discord.Embed(description=f'**{ERR_EMOJI} {error}**')

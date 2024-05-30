@@ -21,7 +21,7 @@ class LootboxUI(ui.View):
     
     # list of items which only can be owned once that the user owns
     owned = set(item.id for item in db.items.all(user.id) if getItemByID(item.id).stack == 1)
-    self.query = [item for item in getItems() if item.id not in owned and item.type not in ['role','command']]
+    self.query = [item for item in getItems() if item.id not in owned and item.type in ['book','misc','utility']]
 
     if next:
       openButton = ui.Button(label='Open lootbox', emoji=CHECKOUT_EMOJI, style=discord.ButtonStyle.primary)

@@ -8,7 +8,7 @@ from core.plugins import Plugin
 from typing import List
 from datetime import datetime
 from core.casino import GameMenu
-from core.misc import calculate_boosts, hascoins, format_seconds
+from core.misc import calculate_boosts, hascoins
 from core.items import getItemByID, useItem
 from core.ui import LootboxUI, LOOTBOX_PRICE
 from core.emojis import *
@@ -28,8 +28,14 @@ class Generic(Plugin):
   @app_commands.checks.cooldown(1, 60, key=lambda i: (i.guild_id,i.user.id))
   async def coems(self, interaction: discord.Interaction):
     item = db.items.get(interaction.user.id,1001)
-    if item == 0:
-      await interaction.response.send_message(f"You didn't buy this feature yet.\nSave up {COINS_EMOJI} ` 350 Coins ` and get it in the <#{config.SHOP_CHANNEL}>!",ephemeral=True)
+    if not item or item == 0:
+      user_balance = db.users.get('coins',interaction.user.id)
+      message = f"You didn't buy this feature yet.\n"
+      if user_balance < 100:
+        message += f"Save up {COINS_EMOJI} ` 100 Coins ` and get it in the <#{config.SHOP_CHANNEL}>!"
+      else:
+        message += f"Buy it in the <#{config.SHOP_CHANNEL}>!"
+      await interaction.response.send_message(message,ephemeral=True)
       return
     await interaction.response.send_message("Generating coems :money_mouth:",ephemeral=True)
     messages = [
@@ -108,9 +114,6 @@ class Generic(Plugin):
     last_daily = db.items.get(interaction.user.id,5001,'timestamp') or datetime.now().timestamp()
     delta_last = datetime.now() - datetime.fromtimestamp(last_daily)
     coins = DAILY_COINS + (streak * DAILY_COINS)
-    print(streak)
-    print(last_daily)
-    print(delta_last.total_seconds())
     embed = discord.Embed(description=f'**You have claimed **{COINS_EMOJI}` {coins} Coins `\n')
     if delta_last.total_seconds() > 86400 * 2:
       db.items.set(interaction.user.id,5001,1)
@@ -150,6 +153,7 @@ class Generic(Plugin):
 
       slot1, slot2, slot3 = slots
 
+      db.items.clearpast(interaction.user.id,[4002,4001,4003])
       # Final result
       if slot1 == slot2 == slot3:
           embed.description += '**Jackpot!** '

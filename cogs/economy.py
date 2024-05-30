@@ -182,9 +182,8 @@ class Economy(Plugin):
   @app_commands.command(name="leaderboard",description="See who is on the top")
   @app_commands.describe(max="Maximum members to display")
   async def leaderboard(self,interaction:discord.Interaction,max: int = 15):
+    # TODO: add pagination
     items = db.board("coins",max)
-    print(items)
-    # TODO fix some bugs ( they will come up )
     bank = items[0][1]
     del items[0]
     embed= discord.Embed(title=f"{COINS_EMOJI} Coins Leaderboard",description=f'**Bank** `` {bank:,} Coins ``\n\n' + '\n'.join(f"**<@{row[0]}> `` {row[1]} Coins ``**" for row in items))

@@ -81,31 +81,11 @@ def isprivileged(member: discord.Member) -> bool:
 def hascoins(amount: int, message: str) -> bool:
     async def predicate(interaction: discord.Interaction):
         balance = db.users.get('coins',interaction.user.id)
-        print(balance, amount)
         if balance < amount:
             await interaction.response.send_message(f"You need at least {COINS_EMOJI} ` {amount} Coins ` to {message}.",ephemeral=True)
             return False
         return True
     return discord.app_commands.check(predicate)
-
-def format_seconds(seconds: float) -> str:
-    delta = datetime.timedelta(seconds=seconds)
-    days = delta.days
-    hours, remainder = divmod(delta.seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    
-    parts = []
-    if days > 0:
-        parts.append(f"{days} day{'s' if days > 1 else ''}")
-    elif hours > 0:
-        parts.append(f"{hours} hour{'s' if hours > 1 else ''}")
-    elif minutes > 0:
-        parts.append(f"{minutes} minute{'s' if minutes > 1 else ''}")
-    elif seconds > 0:
-        parts.append(f"{seconds} second{'s' if seconds > 1 else ''}")
-    
-    return ', '.join(parts)
-
 
 def calculate_boosts(slots):
     boosts = {

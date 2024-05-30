@@ -4,7 +4,6 @@ import discord
 import random
 import db
 from datetime import datetime
-from core.misc import format_seconds
 from core.emojis import *
 
 class Item:
@@ -78,35 +77,34 @@ def getRandomItemByRarity(rarity: int,items: List[Item] = ITEMS) -> Item:
     return random.choice(weighted_items)
 
 def getItemBoard(baseitems: List[db.BaseItem]) -> str:
-  # TODO : Fix bug where streak item appears twice in the board
-  item_categories = {'streak':[],'boost': [],'role': [], 'command': [], 'utility': [], 'misc': []}
-  board : str = ''
-  total : int = 0
-  print(baseitems)
-  for baseitem in baseitems:
-    total += baseitem.amount
-    item = getItemByID(baseitem.id)
-    category = item.type if item.type in item_categories else 'misc'
-    itemname = item.name if item.emoji == '' else f"{item.emoji} {item.name}"
-    if category in ['role', 'command']:
-      item_categories[category].append(f"**{itemname}**\n")
-    if category in ['streak']:
-      item_categories[category].append(f"**{item.name}**: {FIREUP_EMOJI}` {baseitem.amount} `\n")
-    if category in ['boost']:
-      print(baseitem.timestamp)
-      delta = datetime.fromtimestamp(baseitem.timestamp) - datetime.now()
-      print(format_seconds(delta.total_seconds()))
-      item_categories[category].append(f"**{itemname}** expires in: {format_seconds(delta.total_seconds())}\n")
-    else:
-      item_categories[category].append(f"*{baseitem.amount}x* **{itemname}**\n")
+    item_categories = {'streak': [], 'boost': [], 'role': [], 'command': [], 'utility': [], 'misc': []}
+    board: str = ''
+    total: int = 0
+       
+    for baseitem in baseitems:
+        total += baseitem.amount
+        item = getItemByID(baseitem.id)
+        type = item.type if item.type in item_categories else 'misc'
+        itemname = item.name if item.emoji == '' else f"{item.emoji} {item.name}"
+        
+        if type in ['role', 'command']:
+            item_categories[type].append(f"**{itemname}**\n")
+        elif type == 'streak':
+            item_categories[type].append(f"**{item.name}**: {FIREUP_EMOJI} ` {baseitem.amount} `\n")
+        elif type == 'boost':
+            delta = datetime.fromtimestamp(baseitem.timestamp) - datetime.now()
+            if delta.total_seconds() > 0:
+                item_categories[type].append(f"**{itemname}** expires <t:{int(baseitem.timestamp)}:R> \n")
+        else:
+            item_categories[type].append(f"*{baseitem.amount}x* **{itemname}**\n")
+    
+    for category, items_list in item_categories.items():
+        if items_list:
+            category_label = category.capitalize()
+            board += f"` {category_label} `\n{''.join(items_list)}\n"
 
-  for category, items_list in item_categories.items():
-    if items_list:
-      category_label = category.capitalize()
-      board += f"` {category_label} `\n{''.join(items_list)}\n"
-
-  board += f"**Total:** ` {total} items `\n\n"
-  return board
+    board += f"**Total:** ` {total} items `\n\n"
+    return board
 
 def useItem(user_id: int, item: Item,amount: int = 1, duration: int = 0) -> discord.Embed:
     embed = discord.Embed(description=f"You have used a **{item.emoji} {item.name}**!")

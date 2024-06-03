@@ -250,12 +250,11 @@ def exchange(target: int, sender: int, value: int) -> None:
   '''
   Exchange coins between two users
   '''
-  print(value,type(value))
   sender_balance = users.get('coins',sender)
   if sender_balance < value:
     raise Exception('Insufficient funds')
-  users.increment('coins',sender,-value)
-  users.increment('coins',target,value)
+  users.increment('coins',sender,int(-value))
+  users.increment('coins',target,int(value))
 
 def board(value: str, count: int = None) -> List[int]:
   """

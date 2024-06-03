@@ -140,7 +140,7 @@ class Events(Plugin):
         if content_length > 200:
             content_length = 200
 
-        coins_new = content_length // 10
+        coins_new: int = content_length // 10
         xp_new = content_length // 4
 
         # Pendant 1.5x Boost for Nitro

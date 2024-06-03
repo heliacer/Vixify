@@ -250,6 +250,7 @@ def exchange(target: int, sender: int, value: int) -> None:
   '''
   Exchange coins between two users
   '''
+  print(value,type(value))
   sender_balance = users.get('coins',sender)
   if sender_balance < value:
     raise Exception('Insufficient funds')

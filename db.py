@@ -28,19 +28,6 @@ CREATE TABLE IF NOT EXISTS items (
 ''')
 
 cursor.execute('''
-  CREATE TABLE IF NOT EXISTS mails (
-  mail_id INTEGER PRIMARY KEY AUTOINCREMENT,
-  author_id INTEGER,
-  recipient_id INTEGER DEFAULT NULL,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  timestamp INTEGER NOT NULL,
-  FOREIGN KEY (author_id) REFERENCES users(user_id),
-  FOREIGN KEY (recipient_id) REFERENCES users(user_id)
-);
-''')
-
-cursor.execute('''
   CREATE TABLE IF NOT EXISTS has_read (
     mail_id INTEGER,
     user_id INTEGER,
@@ -213,10 +200,9 @@ class Items:
       Clears specified items that have expired from a user's items.
       '''
       if not item_ids:
-          return  # If item_ids is empty, do nothing
+          return
 
       current_timestamp = datetime.now().timestamp()
-      # Convert list of item_ids to a comma-separated string for SQL query
       item_ids_str = ','.join('?' for _ in item_ids)
       query = f'''
       DELETE FROM items
@@ -226,19 +212,7 @@ class Items:
       cursor.execute(query, parameters)
       conn.commit()
       
-# TODO: Implement the mail system
-class Mails:
-  def send():
-    pass
-
-  def sendall():
-    pass
-
-  def receive():
-    pass
-
-
-      
+  
 def commit(query: str, *args) -> None:
   '''
   Modifies the database with a custom query, commiting the changes

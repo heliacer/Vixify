@@ -1,22 +1,54 @@
 from discord.ext import commands
+from discord import app_commands
 import discord
 import db
-import os
 import config
 from core.plugins import Plugin
+from core.emojis import *
+from core.items import getItems,getItemByID
 
-CONFIRM_MESSAGE = "**<:confirm:1175396326272409670> Task executed.**"
+CONFIRM_MESSAGE = f"**{CONFIRM_EMOJI} Task executed.**"
 CONFIRM_EMBED = discord.Embed(description=CONFIRM_MESSAGE)
 
 class Admin(Plugin):
-  @commands.command()
+  @app_commands.command(name = "giveuser",description="Admin tools to modify user rank, coins & xp")
+  @app_commands.describe(member="The member you want to give to.")
+  @app_commands.describe(amount="The amount you want to give. Not all items are shown here, search for the item you want to give.")
+  @app_commands.describe(type="The type of value you want to give.")
+  @app_commands.choices(type=[app_commands.Choice(name=value.capitalize(), value=value) for value in ['coins','xp','rank']])
+  @app_commands.checks.has_permissions(administrator=True)
+  async def giveuser(self, interaction: discord.Interaction,type: str, member: discord.Member, amount: int):
+    db.users.increment(type,member.id,amount)
+    embed = discord.Embed(description=f'**{CONFIRM_EMOJI} Gave ` {amount} {type.capitalize()} ` to {member.mention}**')
+    await interaction.response.send_message(embed=embed,ephemeral=True)
+
+  async def admin_panel_items(self, interaction: discord.Interaction, current: str):
+    items = getItems()
+    return [
+        app_commands.Choice(name=item.name, value=str(item.id))
+        for item in items if current.lower() in item.name.lower()
+    ][:25]
+
+  @app_commands.command(name = "giveitem",description="Admin tools to modify users items")
+  @app_commands.describe(member="The member you want to give to.")
+  @app_commands.describe(item="The item you want to give.")
+  @app_commands.describe(amount="The amount you want to give.")
+  @app_commands.autocomplete(item=admin_panel_items)
+  @app_commands.checks.has_permissions(administrator=True)
+  async def giveitem(self, interaction: discord.Interaction, member: discord.Member, item: str, amount: int = 1):
+    fullitem = getItemByID(int(item))
+    db.items.increment(member.id, fullitem.id, amount)
+    embed = discord.Embed(description=f'{CONFIRM_EMOJI} Gave *{amount:,}x* {fullitem.emoji} **{fullitem.name}** to {member.mention}')
+    await interaction.response.send_message(embed=embed)
+
+  @commands.command(description="Clears a table in the database.")
   @commands.has_permissions(administrator=True)
   async def cleartable(self, ctx, table, syntax=None):
-    if not db.tablehasdata(table) or syntax == "force":
-      db.deletedata(table)
+    if not db.fetch(f'SELECT * FROM {table}') or syntax == "force":
+      db.commit(f'DELETE * FROM {table}')
       message = CONFIRM_MESSAGE
     else:
-      message = f"**<:remove:1175005705422512218> Table has data. Use `force` to clear table.**"
+      message = f"**{REMOVE_EMOJI} Table has data. Use `force` to clear table.**"
     embed = discord.Embed(description=message)
     await ctx.send(embed=embed, delete_after=10)
 
@@ -24,7 +56,7 @@ class Admin(Plugin):
   @commands.has_permissions(administrator=True)
   async def dbinit(self, ctx):
     guild = self.bot.get_guild(config.GUILD)
-    db.init(guild.member_count * 200,self.bot.user.id)
+    db.users.set('coins',self.bot.user.id,guild.member_count * 200)
     embed = discord.Embed(description=CONFIRM_MESSAGE)
     await ctx.send(embed=embed, delete_after=10)
 
@@ -34,49 +66,16 @@ class Admin(Plugin):
     await self.bot.change_presence(activity = discord.Activity(type = discord.ActivityType.custom,name = " ",state = status.replace("_"," ")))
     await ctx.send(embed=CONFIRM_EMBED, delete_after=10)
 
-  @commands.command()
-  @commands.has_permissions(administrator=True)
-  async def store(self, ctx, table, value, member: discord.Member, *, data):
-    tryjson = data[1:-1]
-    if tryjson.startswith("{"):
-      data = tryjson
-    try:
-      db.store(table, value, member.id, data)
-      message = CONFIRM_MESSAGE
-    except Exception as e:
-      message = f'**<:remove:1175005705422512218> Task failed.**\n```fix\n{e}```'
-    embed = discord.Embed(description=message)
-    await ctx.send(embed=embed, delete_after=10)
-
-  @commands.command()
-  async def fetch(self, ctx, table, value=None, member: discord.Member = None):
-    user_id = None
-    if member:
-       user_id = member.id
-    try:
-      result = db.fetch(table, value, user_id)
-      if isinstance(result, list):
-        if not result:
-          result = 'No data found.'
-        else:
-          result = '\n'.join(map(str, result))
-      message = f"```\n{result}\n```"
-      await ctx.send(message, delete_after=20)
-    except Exception as e:
-      message = f'**<:remove:1175005705422512218> Task failed.**\n```fix\n{e}```'
-      embed = discord.Embed(description=message)
-      await ctx.send(embed=embed, delete_after=20)
-
   @commands.group()
   @commands.has_permissions(administrator=True)
   async def items(self, ctx: commands.Context):
       if ctx.invoked_subcommand is None:
-        embed = "**<:questionable:1175393148294414347> Item task does not exist.**"
+        embed = f"**{QUESTION_EMOJI} Item task does not exist.**"
         await ctx.send(embed=embed, delete_after=10)
 
   @items.command()
-  async def put(self, ctx, member: discord.Member, item_id: int, value = 1):
-      db.items.put(member.id, item_id, value)
+  async def set(self, ctx, member: discord.Member, item_id: int, value = 1):
+      db.items.set(member.id, item_id, value)
       await ctx.send(embed=CONFIRM_EMBED, delete_after=10)
 
   @items.command()
@@ -84,17 +83,12 @@ class Admin(Plugin):
       if item_id:
         result = db.items.get(member.id, item_id)
       else:
-        result = db.items.getall(member.id)
+        result = db.items.all(member.id)
       await ctx.send(f"```\n{result}\n```", delete_after=20)
 
   @items.command()
-  async def increase(self, ctx, member: discord.Member, item_id: int, value: int):
-      db.items.increase(member.id, item_id, value)
-      await ctx.send(embed=CONFIRM_EMBED, delete_after=10)
-
-  @items.command()
-  async def decrease(self, ctx, member: discord.Member, item_id: int, value: int):
-      db.items.decrease(member.id, item_id, value)
+  async def put(self, ctx, member: discord.Member, item_id: int, value: int):
+      db.items.increment(member.id, item_id, value)
       await ctx.send(embed=CONFIRM_EMBED, delete_after=10)
 
 async def setup(bot):

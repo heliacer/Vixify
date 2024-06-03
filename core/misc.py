@@ -3,7 +3,9 @@ import datetime
 import discord
 import random
 from PIL import ImageDraw, Image, ImageFont
+from core.emojis import *
 import io
+import db
 import json
 
 THRESHOLD = 30
@@ -31,7 +33,6 @@ def calc_cooldown(message):
     current_time = datetime.datetime.now(datetime.UTC) 
     while calc_message([message, (1, current_time + timediff)])[0] > 20000:
         timediff += datetime.timedelta(seconds=1)
-        print(timediff.total_seconds())
     return int(timediff.total_seconds())
 
 async def broadcast(message: discord.Message,content,title=None,view=None,thumb_url=None):
@@ -76,3 +77,24 @@ def isprivileged(member: discord.Member) -> bool:
   Check if a member is privileged (is a booster, is an admin, or is the owner of the guild)
   '''
   return member.premium_since or member.guild_permissions.administrator or member.guild.owner == member
+
+def hascoins(amount: int, message: str) -> bool:
+    async def predicate(interaction: discord.Interaction):
+        balance = db.users.get('coins',interaction.user.id)
+        if balance < amount:
+            await interaction.response.send_message(f"You need at least {COINS_EMOJI} ` {amount} Coins ` to {message}.",ephemeral=True)
+            return False
+        return True
+    return discord.app_commands.check(predicate)
+
+def calculate_boosts(slots):
+    boosts = {
+        COINS_EMOJI: ["coin boost", 4002],
+        LEVEL_EMOJI: ["XP boost", 4001],
+        SANDCLOCK_EMOJI: ["Shop discount", 4003]
+    }
+    boost_durations = {1: 5*60, 2: 10*60}
+
+    matched = [slot for slot in slots if slot in boosts]
+    unique_matches = set(matched)
+    return matched, unique_matches, boosts, boost_durations

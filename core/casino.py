@@ -4,6 +4,7 @@ import discord
 import functools
 import db
 from games import chessgame,pokergame
+from core.emojis import *
 
 
 games = {'chess': (2,2),'poker' :(2,10)}
@@ -48,7 +49,7 @@ class PlaceBet(discord.ui.Modal, title='Place bet'):
         else:
           await interaction.response.send_message("You have insufficient funds mafaka. :angry:",ephemeral=True)
       else:
-        await interaction.response.send_message('Your Bet must be at least <:coins:1172819933093179443> ` 50 - 1500 Coins `',ephemeral=True)
+        await interaction.response.send_message('Your Bet must be at least {COINS_EMOJI} ` 50 - 1500 Coins `',ephemeral=True)
     else:
       await interaction.response.send_message('Your Bet must be a valid number.',ephemeral=True)
 
@@ -118,7 +119,7 @@ class LobbyPanel(discord.ui.View):
   async def join_game(self,interaction: discord.Interaction, button: discord.ui.Button):
     user_balance = db.fetch('economy','coins',interaction.user.id)
     if user_balance < 50:
-      await interaction.response.send_message("You're too poor to take a step into the Casino luxury. Save up at least <:coins:1172819933093179443>` 50 Coins ` to get started.",ephemeral=True)
+      await interaction.response.send_message("You're too poor to take a step into the Casino luxury. Save up at least {COINS_EMOJI}` 50 Coins ` to get started.",ephemeral=True)
     else:
       if interaction.user.id not in [player[0] for player in self.players]:
         if games[self.game][1] == len(self.players):
@@ -153,17 +154,17 @@ class LobbyPanel(discord.ui.View):
 
 async def LobbyPage(interaction: discord.Interaction,game: str,players:list,key:int):
   playerslist = "\n".join(
-      f'<@{player[0]}> <:coins:1172819933093179443> ` {"Not set" if player[1] == 0 else str(player[1]) + " Coins"} ` :crown:' 
+      f'<@{player[0]}> {COINS_EMOJI} ` {"Not set" if player[1] == 0 else str(player[1]) + " Coins"} ` :crown:' 
       if player[0] == players[0][0] 
-      else f'<@{player[0]}> <:coins:1172819933093179443> ` {"Not set" if player[1] == 0 else str(player[1]) + " Coins"} `'
+      else f'<@{player[0]}> {COINS_EMOJI} ` {"Not set" if player[1] == 0 else str(player[1]) + " Coins"} `'
       for player in players
   )
   playermin = games[game][0]
   playermax = games[game][1]
-  mode = '<:worldwide:1203760886842527855> ` Public `'
+  mode = f'{WORLDWIDE_EMOJI} ` Public `'
   if key:
-    mode = '<:padlock:1178730730998734980> ` Private `'
-  PageEmbed = discord.Embed(title=game.capitalize(), description=f'` {str(playermin) + "-" + str(playermax) if playermax != playermin else "Min " + str(playermin)} Players ` {mode}\n\n**Players Joined**\n{playerslist}\n\nPot: <:coins:1172819933093179443> ` {sum([player[1] for player in players])} Coins `')
+    mode = f'{PADLOCK_EMOJI}` Private `'
+  PageEmbed = discord.Embed(title=game.capitalize(), description=f'` {str(playermin) + "-" + str(playermax) if playermax != playermin else "Min " + str(playermin)} Players ` {mode}\n\n**Players Joined**\n{playerslist}\n\nPot: {COINS_EMOJI} ` {sum([player[1] for player in players])} Coins `')
   if not has_all_bets(players):
     PageEmbed.description += '\n**There are bets left to set.**'
   PageEmbed.set_footer(text='The bets will be placed in the bank until paid out.')

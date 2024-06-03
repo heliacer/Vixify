@@ -6,6 +6,7 @@ from typing import Union
 import asyncio
 import io
 from discord import ui
+from core.emojis import *
 
 async def start(interaction: discord.Interaction,players:list):
   board = chess.Board()
@@ -99,19 +100,19 @@ class ChessGameUI(ui.View):
     self.current_player = current_player
     self.color = color
 
-  @ui.button(label='Make UCI Move',emoji='<:touch:1216394992512274482>')
+  @ui.button(label='Make UCI Move',emoji=TOUCH_EMOJI)
   async def makemove(self,interaction: discord.Interaction,button):
     if interaction.user.id == self.current_player[0]:
       await interaction.response.send_modal(SubmitUCIMove(self.board,self.players,self.current_player,self.color))
     else:
       await interaction.response.send_message("It's not your turn!",ephemeral=True)
 
-  @ui.button(label='UCI Help',emoji='<:questionable:1175393148294414347>')
+  @ui.button(label='UCI Help',emoji=QUESTION_EMOJI)
   async def help(self,interaction: discord.Interaction,button):
     embed = discord.Embed(title='Game GUI Instructions',description="1. **Move Your Pieces:**\n - Use chessboard coordinates to specify moves. Each square has a unique label, like e2 or g7.\n - To move a piece, type the starting square (e.g., e2) followed by the destination square (e.g., e4). No spaces or special characters needed.\n2. **Example Moves:**\n - Move a pawn from e2 to e4: `e2e4`\n - Move a knight from g1 to f3: `g1f3`\n3. **Finding Coordinates:**\n - Look at the edges of the board for letter and number labels.\n - The letters (a-h) represent columns, and the numbers (1-8) represent rows.\n\nEnjoy playing chess!")
     await interaction.response.send_message(embed=embed,ephemeral=True)
 
-  @ui.button(label='Give Up',emoji='<:sandclock:1203261564291911680>')
+  @ui.button(label='Give Up',emoji=SANDCLOCK_EMOJI)
   async def giveup(self,interaction: discord.Interaction,button):
     next_player = self.players[(self.players.index(self.current_player) + 1) % len(self.players)]
     winner = self.current_player if interaction.user.id != self.current_player[0] else next_player

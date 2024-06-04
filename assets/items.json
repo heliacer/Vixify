@@ -99,7 +99,8 @@
     "price": 50,
     "id": 3001,
     "type": "utility",
-    "rarity" : 2
+    "rarity" : 2,
+    "buyable" : false
   },
   {
     "name": "XP Jar",
@@ -108,7 +109,8 @@
     "price": 100,
     "id": 3002,
     "type": "utility",
-    "rarity" : 3
+    "rarity" : 3,
+    "buyable" : false
   },
   {
     "name": "Fox Plushie",

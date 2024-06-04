@@ -100,10 +100,12 @@ class Generic(Plugin):
   @app_commands.command(name="use", description="uses an item from your inventory")
   @app_commands.autocomplete(item=item_autocomplete)
   @app_commands.describe(item='The item you want to use.')
+  @app_commands.describe(amount='The amount of items you want to use.')
   async def use(self, interaction: discord.Interaction, item: str,amount: int = 1):
     fullitem = getItemByID(int(item))
-    embed = useItem(interaction.user.id, fullitem, amount)
-    await interaction.response.send_message(embed=embed)
+    # embed = useItem(interaction.user.id, fullitem, amount)
+    embed = discord.Embed(description=f"**{ERR_EMOJI} This feature is not available yet! It is still in development.**")
+    await interaction.response.send_message(embed=embed,ephemeral=True)
   
   @app_commands.command(name = "daily",description = "Claim your daily coins!")
   @app_commands.checks.cooldown(1, 86400, key=lambda i: (i.guild_id,i.user.id))

@@ -6,6 +6,7 @@ from collections import defaultdict
 from discord.ext import commands
 from core.plugins import Plugin
 from typing import List
+from datetime import datetime
 from core.items import getItemsByType,getItemByID,getNextItemPrice
 from core.emojis import *
 
@@ -51,7 +52,8 @@ async def loadpage(interaction: discord.Interaction,page: int,balance: int,sale_
 
   # Add the items of display to the embed
   for item in itemDisplay:
-    if item.id in user_roles or db.items.get(interaction.user.id,item.id) > 0 if item.stack == 1 else False:
+    item_amounts = db.items.get(interaction.user.id,item.id) or 0
+    if item.id in user_roles or item_amounts  > 0 if item.stack == 1 else False:
       balance_format = f"{BADGE_EMOJI}`` Bought ``" 
     elif item.price * sale_percent <= balance:
       balance_format = f"{COINS_EMOJI} `` {item.price * sale_percent:,.0f} Coins ``" 
@@ -70,10 +72,7 @@ async def loadpage(interaction: discord.Interaction,page: int,balance: int,sale_
     transaction_embed.add_field(name=f"{SELECTION_EMOJI} Selected", value=selectionvalue)
     transaction_embed.add_field(name=f"{CIRCULAR_EMOJI} Transaction", value=f"__Current Balance__ : `` {balance:,} Coins ``\n__Total Price__ : `` {price:,} Coins ``\n*You'll be left with `` {balance-price:,} Coins ``*")
     if sale_percent < 1:
-      if sale_percent == 0.5:
-        sale_embed = discord.Embed(title=f'{FLASHSALE_EMOJI} BANK 50% SALE',description='**THE BANK IS INSOLVENT. GO BUY NOW.\nALL ITEMS ON 50% SALE!!**')
-      else:
-        sale_embed = discord.Embed(title=f'{FLASHSALE_EMOJI} BANK 75% SALE',description='**As the Bank is Undercapitalized, Every item is on 75% Sale!\nGo buy now before the Sale goes away!**')
+      sale_embed = discord.Embed(title=f'{FLASHSALE_EMOJI} {sale_percent*100} SALE',description=f'**The Shop has a {100*sale_percent} Sale!\nGo buy now before the sale goes away!**')
       sale_embed.set_thumbnail(url='https://i.ibb.co/0KxjgjC/box.png')
       embeds.append(sale_embed)
   else:
@@ -202,6 +201,10 @@ class SectionSelect(ui.View):
       sale_percent = 0.75
       if bank_balance == 0:
         sale_percent = 0.5
+    shop_boost_timestamp = db.items.get(interaction.user.id,4003,'timestamp') or 0
+    now_time = datetime.now().timestamp()
+    if now_time < shop_boost_timestamp:
+      sale_percent = 0.5
     await loadpage(self.parent,1,self.balance,sale_percent,interaction.data["values"][0])
 
 class ShopButtons(ui.View):

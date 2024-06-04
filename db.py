@@ -117,6 +117,13 @@ class Users:
       cursor.execute(query, (user_id, step))
       conn.commit()
 
+  def delete(self, user_id: int) -> None:
+      """
+      Deletes a user and its items from the database.
+      """
+      cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+      cursor.execute("DELETE FROM items WHERE user_id = ?", (user_id,))
+      conn.commit()
 
 class Items:
   def all(self,user_id: int) -> List[BaseItem]:

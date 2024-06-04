@@ -202,6 +202,10 @@ class Events(Plugin):
     @commands.Cog.listener()
     async def on_member_join(self, member):
         db.users.increment('coins',self.bot.user.id,500)
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, member: discord.Member):
+        db.users.delete(member.id)
     
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):

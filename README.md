@@ -1,5 +1,4 @@
 # Vixify Economy Bot
-*Suited for Heliacer Dev Lounge*
 
 This is a personal project, feel free to use this bot for your own guilds!
 
@@ -18,4 +17,4 @@ TOKEN=your_bot_token_here
 
 That's it!
 
-If you need more help, reach me at [Heliacer's Dev lounge](https://discord.gg/DA4mBJX8nb)
+

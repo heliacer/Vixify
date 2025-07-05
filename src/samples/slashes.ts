@@ -1,7 +1,7 @@
-import { Pagination } from "@discordx/pagination";
-import type { CommandInteraction } from "discord.js";
-import { EmbedBuilder } from "discord.js";
-import { Discord, MetadataStorage, Slash } from "discordx";
+import { Pagination } from "@discordx/pagination"
+import type { CommandInteraction } from "discord.js"
+import { EmbedBuilder } from "discord.js"
+import { Discord, MetadataStorage, Slash } from "discordx"
 
 @Discord()
 export class SlashExample {
@@ -12,8 +12,8 @@ export class SlashExample {
   })
   async pages(interaction: CommandInteraction): Promise<void> {
     const commands = MetadataStorage.instance.applicationCommands.map((cmd) => {
-      return { description: cmd.description, name: cmd.name };
-    });
+      return { description: cmd.description, name: cmd.name }
+    })
 
     const pages = commands.map((cmd, i) => {
       const embed = new EmbedBuilder()
@@ -25,12 +25,12 @@ export class SlashExample {
         .addFields({
           name: "Description",
           value: cmd.description.length ? cmd.description : "-",
-        });
+        })
 
-      return { embeds: [embed] };
-    });
+      return { embeds: [embed] }
+    })
 
-    const pagination = new Pagination(interaction, pages);
-    await pagination.send();
+    const pagination = new Pagination(interaction, pages)
+    await pagination.send()
   }
 }

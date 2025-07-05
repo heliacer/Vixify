@@ -1,9 +1,10 @@
 import { dirname, importx } from "@discordx/importer"
 import type { Interaction, Message } from "discord.js"
-import { IntentsBitField } from "discord.js"
+import { ActivityType, IntentsBitField } from "discord.js"
 import { Client } from "discordx"
 import dotenv from 'dotenv'
 import prisma from "./data/prisma.js"
+import config from "./config.js"
 
 dotenv.config()
 
@@ -36,6 +37,16 @@ bot.once("ready", () => {
 
   // Synchronize applications commands with Discord
   void bot.initApplicationCommands()
+
+  bot.user?.setAvatar(config.avatar)
+  bot.user?.setUsername(config.username)
+  bot.user?.setPresence({
+    activities: [{
+      name: config.customPresence[Math.floor(Math.random() * config.customPresence.length)],
+      type: ActivityType.Custom
+    }]
+  })
+
 
   // To clear all guild commands, uncomment this line,
   // This is useful when moving from guild commands to global commands

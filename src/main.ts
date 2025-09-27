@@ -1,10 +1,10 @@
-import { dirname, importx } from "@discordx/importer"
-import type { Interaction, Message } from "discord.js"
-import { ActivityType, IntentsBitField } from "discord.js"
-import { Client } from "discordx"
+import { dirname, importx } from '@discordx/importer'
+import type { Interaction, Message } from 'discord.js'
+import { ActivityType, IntentsBitField } from 'discord.js'
+import { Client } from 'discordx'
 import dotenv from 'dotenv'
-import prisma from "./data/prisma.js"
-import config from "./config.js"
+import prisma from './data/prisma.js'
+import config from './config.js'
 
 dotenv.config()
 
@@ -27,11 +27,11 @@ export const bot = new Client({
 
   // Configuration for @SimpleCommand
   simpleCommand: {
-    prefix: "?",
+    prefix: '?',
   },
 })
 
-bot.once("ready", () => {
+bot.once('clientReady', () => {
   // Make sure all guilds are cached
   // await bot.guilds.fetch();
 
@@ -41,12 +41,15 @@ bot.once("ready", () => {
   bot.user?.setAvatar(config.avatar)
   bot.user?.setUsername(config.username)
   bot.user?.setPresence({
-    activities: [{
-      name: config.customPresence[Math.floor(Math.random() * config.customPresence.length)],
-      type: ActivityType.Custom
-    }]
+    activities: [
+      {
+        name: config.customPresence[
+          Math.floor(Math.random() * config.customPresence.length)
+        ],
+        type: ActivityType.Custom,
+      },
+    ],
   })
-
 
   // To clear all guild commands, uncomment this line,
   // This is useful when moving from guild commands to global commands
@@ -56,14 +59,14 @@ bot.once("ready", () => {
   //    ...bot.guilds.cache.map((g) => g.id)
   //  );
 
-  console.log("Bot started")
+  console.log('Bot started')
 })
 
-bot.on("interactionCreate", (interaction: Interaction) => {
+bot.on('interactionCreate', (interaction: Interaction) => {
   bot.executeInteraction(interaction)
 })
 
-bot.on("messageCreate", (message: Message) => {
+bot.on('messageCreate', (message: Message) => {
   void bot.executeCommand(message)
 })
 
@@ -77,7 +80,7 @@ async function run() {
 
   // Let's start the bot
   if (!process.env.BOT_TOKEN) {
-    throw Error("Could not find BOT_TOKEN in your environment")
+    throw Error('Could not find BOT_TOKEN in your environment')
   }
 
   // Log in with your bot token

@@ -1,14 +1,14 @@
-import { Pagination } from "@discordx/pagination"
-import type { CommandInteraction } from "discord.js"
-import { EmbedBuilder } from "discord.js"
-import { Discord, MetadataStorage, Slash } from "discordx"
+import { Pagination } from '@discordx/pagination'
+import type { CommandInteraction } from 'discord.js'
+import { EmbedBuilder } from 'discord.js'
+import { Discord, MetadataStorage, Slash } from 'discordx'
 
 @Discord()
 export class SlashExample {
   // example: pagination for all slash command
   @Slash({
-    description: "Pagination for all slash command",
-    name: "all-commands",
+    description: 'Pagination for all slash command',
+    name: 'all-commands',
   })
   async pages(interaction: CommandInteraction): Promise<void> {
     const commands = MetadataStorage.instance.applicationCommands.map((cmd) => {
@@ -20,11 +20,11 @@ export class SlashExample {
         .setFooter({
           text: `Page ${String(i + 1)} of ${String(commands.length)}`,
         })
-        .setTitle("**Slash command info**")
-        .addFields({ name: "Name", value: cmd.name })
+        .setTitle('**Slash command info**')
+        .addFields({ name: 'Name', value: cmd.name })
         .addFields({
-          name: "Description",
-          value: cmd.description.length ? cmd.description : "-",
+          name: 'Description',
+          value: cmd.description.length ? cmd.description : '-',
         })
 
       return { embeds: [embed] }

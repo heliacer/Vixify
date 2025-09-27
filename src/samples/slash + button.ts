@@ -3,23 +3,23 @@ import type {
   CommandInteraction,
   MessageActionRowComponentBuilder,
   User,
-} from "discord.js";
+} from 'discord.js'
 import {
   ActionRowBuilder,
   ApplicationCommandOptionType,
   ButtonBuilder,
   ButtonStyle,
   GuildMember,
-} from "discord.js";
-import { ButtonComponent, Discord, Slash, SlashOption } from "discordx";
+} from 'discord.js'
+import { ButtonComponent, Discord, Slash, SlashOption } from 'discordx'
 
 @Discord()
 export class Example {
-  @Slash({ description: "hello", name: "hello-btn" })
+  @Slash({ description: 'hello', name: 'hello-btn' })
   async hello(
     @SlashOption({
-      description: "user",
-      name: "user",
+      description: 'user',
+      name: 'user',
       required: true,
       type: ApplicationCommandOptionType.User,
     })
@@ -27,34 +27,34 @@ export class Example {
     interaction: CommandInteraction,
   ): Promise<void> {
     if (!user) {
-      return;
+      return
     }
 
-    await interaction.deferReply();
+    await interaction.deferReply()
 
     const helloBtn = new ButtonBuilder()
-      .setLabel("Hello")
-      .setEmoji("👋")
+      .setLabel('Hello')
+      .setEmoji('👋')
       .setStyle(ButtonStyle.Primary)
-      .setCustomId("hello-btn");
+      .setCustomId('hello-btn')
 
     const row =
       new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
         helloBtn,
-      );
+      )
 
     await interaction.editReply({
       components: [row],
       content: `${user.toString()}, Say hello to bot`,
-    });
+    })
   }
 
-  @ButtonComponent({ id: "hello-btn" })
+  @ButtonComponent({ id: 'hello-btn' })
   async helloBtn(interaction: ButtonInteraction): Promise<void> {
     if (!(interaction.member instanceof GuildMember)) {
-      return;
+      return
     }
 
-    await interaction.reply(`👋 ${interaction.member.toString()}`);
+    await interaction.reply(`👋 ${interaction.member.toString()}`)
   }
 }
